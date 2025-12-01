@@ -1,8 +1,7 @@
+use dioxus::fullstack::{JsonEncoding, Streaming};
 use dioxus::prelude::*;
-use std::{
-    env, process,
-    sync::{Arc, LazyLock, RwLock},
-};
+use std::sync::{Arc, LazyLock, RwLock};
+use std::{env, process};
 
 pub use models::*;
 mod models;
@@ -30,6 +29,22 @@ static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| {
     };
     admin_password
 });
+
+/// returns current progress of the teams and existing puzzles
+#[get("/api/state_json_stream")]
+pub async fn state_stream() -> Result<Streaming<(TeamsState, SolvedPuzzles), JsonEncoding>> {
+    Ok(Streaming::spawn(|tx| async move {
+        while tx
+            .unbounded_send((
+                TEAMS.read().unwrap().clone(),
+                PUZZLES.read().unwrap().keys().cloned().collect(),
+            ))
+            .is_ok()
+        {
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        }
+    }))
+}
 
 #[post("/api/join?username")]
 pub async fn join(username: String, password: Option<String>) -> Result<String, HttpError> {
