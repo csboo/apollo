@@ -12,23 +12,17 @@ static PUZZLES: LazyLock<Arc<RwLock<PuzzleSolutions>>> =
 static TEAMS: LazyLock<Arc<RwLock<TeamsState>>> =
     LazyLock::new(|| Arc::new(RwLock::new(TeamsState::new())));
 
-static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| {
-    const ADMIN_USERNAME_ENV_VAR_NAME: &str = "APOLLO_MESTER_NEV";
-    let Ok(admin_username) = env::var(ADMIN_USERNAME_ENV_VAR_NAME) else {
-        error!("{ADMIN_USERNAME_ENV_VAR_NAME} env var not set, can't proceed");
+/// without `name`, the app won't run
+fn needed_env_var(key: &str) -> String {
+    let Ok(value) = env::var(key) else {
+        error!("{key:?} env var not set, can't proceed");
         process::exit(1);
     };
-    admin_username
-});
+    value
+}
 
-static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| {
-    const ADMIN_PASSWORD_ENV_VAR_NAME: &str = "APOLLO_MESTER_JELSZO";
-    let Ok(admin_password) = env::var(ADMIN_PASSWORD_ENV_VAR_NAME) else {
-        error!("{ADMIN_PASSWORD_ENV_VAR_NAME} env var not set, can't proceed");
-        process::exit(2);
-    };
-    admin_password
-});
+static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| needed_env_var("APOLLO_MESTER_NEV"));
+static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| needed_env_var("APOLLO_MESTER_JELSZO"));
 
 /// returns current progress of the teams and existing puzzles
 #[get("/api/state_json_stream")]
