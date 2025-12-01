@@ -1,5 +1,5 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
-pub type ExerciseState = HashMap<usize, i32>;
-pub type SolvedState = HashMap<usize, bool>;
-pub type TeamsState = HashMap<String, SolvedState>;
+pub type PuzzleSolutions = HashMap<usize, i32>;
+pub type SolvedPuzzles = BTreeSet<usize>;
+pub type TeamsState = HashMap<String, SolvedPuzzles>;

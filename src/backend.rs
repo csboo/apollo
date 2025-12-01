@@ -7,8 +7,8 @@ use std::{
 pub use models::*;
 mod models;
 
-static EXERCISES: LazyLock<Arc<RwLock<ExerciseState>>> =
-    LazyLock::new(|| Arc::new(RwLock::new(ExerciseState::new())));
+static PUZZLES: LazyLock<Arc<RwLock<PuzzleSolutions>>> =
+    LazyLock::new(|| Arc::new(RwLock::new(PuzzleSolutions::new())));
 
 static TEAMS: LazyLock<Arc<RwLock<TeamsState>>> =
     LazyLock::new(|| Arc::new(RwLock::new(TeamsState::new())));
@@ -36,27 +36,47 @@ pub async fn join(username: String, password: Option<String>) -> Result<String, 
     let teams = &mut TEAMS.write().unwrap();
     (!teams.contains_key(&username)).or_forbidden("already joined")?;
     // trying to join as admin
-    if *ADMIN_USERNAME == username {
-        password
-            .as_ref()
-            .or_bad_request("password is required for APOLLO_MESTER")?;
-
-        // SAFETY: is_some, see above
-        if *ADMIN_PASSWORD != password.unwrap() {
-            return HttpError::unauthorized("incorrect password for APOLLO_MESTER")?;
-        }
+    if *ADMIN_USERNAME == username
+        && *ADMIN_PASSWORD != password.or_bad_request("password is required for APOLLO_MESTER")?
+    {
+        return HttpError::unauthorized("incorrect password for APOLLO_MESTER")?;
     }
-    _ = teams.insert(username, SolvedState::new());
-    Ok(String::from("helo"))
+    _ = teams.insert(username, SolvedPuzzles::new());
+    Ok(String::from("helo, mehet!"))
 }
 
 /// Echo the user input on the server.
-#[post("/api/{username}?part&solution")]
+#[post("/api/submit?username&puzzle&solution")]
 pub async fn submit_solution(
     username: String,
-    part: usize,
+    puzzle: usize,
     solution: i32,
     password: Option<String>,
-) -> Result<String, ServerFnError> {
-    Ok(String::from("helo"))
+) -> Result<String, HttpError> {
+    let teams = &mut TEAMS.write().unwrap();
+    let team_state = teams
+        .get_mut(&username)
+        .or_forbidden("no such team in the competition, join first")?;
+
+    // submitting as admin
+    if *ADMIN_USERNAME == username {
+        if *ADMIN_PASSWORD != password.or_bad_request("password is required for APOLLO_MESTER")? {
+            return HttpError::unauthorized("incorrect password for APOLLO_MESTER")?;
+        }
+
+        let puzzles = &mut PUZZLES.write().unwrap();
+        (!puzzles.contains_key(&puzzle))
+            .or_forbidden("a solution for this puzzle is already set")?;
+        puzzles.insert(puzzle, solution);
+    }
+
+    let puzzles = &mut PUZZLES.read().unwrap();
+    if solution == *puzzles.get(&puzzle).or_not_found("no such puzzle")? {
+        team_state
+            .insert(puzzle)
+            .or_forbidden("already solved this puzzle")?;
+        Ok(String::from("oke, megoldottad, elmentettem!"))
+    } else {
+        HttpError::forbidden("incorrect solution")?
+    }
 }
