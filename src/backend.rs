@@ -33,6 +33,13 @@ pub fn ensure_admin_env_vars() {
 
 pub static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_NEV"));
 static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_JELSZO"));
+static EVENT_TITLE: LazyLock<Result<String, env::VarError>> =
+    LazyLock::new(|| env::var("APOLLO_EVENT_TITLE"));
+
+#[get("/api/event_title")]
+pub async fn event_title() -> Result<String> {
+    Ok(EVENT_TITLE.clone()?)
+}
 
 fn get_game_state() -> (TeamsState, PuzzlesExisting) {
     let existing_puzzles = PUZZLES
