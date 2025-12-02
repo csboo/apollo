@@ -35,7 +35,7 @@ pub fn ensure_admin_env_vars() {
 pub static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_NEV"));
 static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_JELSZO"));
 
-/// returns current progress of the teams and existing puzzles
+/// streams current progress of the teams and existing puzzles
 #[get("/api/state_json_stream")]
 pub async fn state_stream() -> Result<Streaming<(TeamsState, SolvedPuzzles), JsonEncoding>> {
     Ok(Streaming::spawn(|tx| async move {
@@ -51,15 +51,17 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, SolvedPuzzles), Jso
     }))
 }
 
+/// join the competition as a contestant team
 #[post("/api/join")]
 pub async fn join(username: String) -> Result<String, HttpError> {
     let teams = &mut TEAMS.write().unwrap();
-    (!teams.contains_key(&username)).or_forbidden("already joined")?;
+    (username != *ADMIN_USERNAME && !teams.contains_key(&username))
+        .or_forbidden("taken username")?;
     _ = teams.insert(username, SolvedPuzzles::new());
     Ok(String::from("helo, mehet!"))
 }
 
-/// Echo the user input on the server.
+/// submit a solution either as a team, or as `ADMIN_USERNAME` with a `password`
 #[post("/api/submit")]
 pub async fn submit_solution(
     username: String,
