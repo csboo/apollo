@@ -40,7 +40,7 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, SolvedPuzzles), Jso
     }))
 }
 
-#[post("/api/join?username")]
+#[post("/api/join")]
 pub async fn join(username: String, password: Option<String>) -> Result<String, HttpError> {
     let teams = &mut TEAMS.write().unwrap();
     (!teams.contains_key(&username)).or_forbidden("already joined")?;
@@ -55,7 +55,7 @@ pub async fn join(username: String, password: Option<String>) -> Result<String, 
 }
 
 /// Echo the user input on the server.
-#[post("/api/submit?username&puzzle&solution")]
+#[post("/api/submit")]
 pub async fn submit_solution(
     username: String,
     puzzle: usize,
