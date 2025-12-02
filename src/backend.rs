@@ -41,15 +41,9 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, SolvedPuzzles), Jso
 }
 
 #[post("/api/join")]
-pub async fn join(username: String, password: Option<String>) -> Result<String, HttpError> {
+pub async fn join(username: String) -> Result<String, HttpError> {
     let teams = &mut TEAMS.write().unwrap();
     (!teams.contains_key(&username)).or_forbidden("already joined")?;
-    // trying to join as admin
-    if *ADMIN_USERNAME == username
-        && *ADMIN_PASSWORD != password.or_bad_request("password is required for APOLLO_MESTER")?
-    {
-        return HttpError::unauthorized("incorrect password for APOLLO_MESTER")?;
-    }
     _ = teams.insert(username, SolvedPuzzles::new());
     Ok(String::from("helo, mehet!"))
 }
@@ -62,11 +56,6 @@ pub async fn submit_solution(
     solution: i32,
     password: Option<String>,
 ) -> Result<String, HttpError> {
-    let teams = &mut TEAMS.write().unwrap();
-    let team_state = teams
-        .get_mut(&username)
-        .or_forbidden("no such team in the competition, join first")?;
-
     // submitting as admin
     if *ADMIN_USERNAME == username {
         if *ADMIN_PASSWORD != password.or_bad_request("password is required for APOLLO_MESTER")? {
@@ -77,7 +66,13 @@ pub async fn submit_solution(
         (!puzzles.contains_key(&puzzle))
             .or_forbidden("a solution for this puzzle is already set")?;
         puzzles.insert(puzzle, solution);
+        return Ok("beallitottam a megoldast".to_string());
     }
+
+    let teams = &mut TEAMS.write().unwrap();
+    let team_state = teams
+        .get_mut(&username)
+        .or_forbidden("no such team in the competition, join first")?;
 
     let puzzles = &mut PUZZLES.read().unwrap();
     if solution == *puzzles.get(&puzzle).or_not_found("no such puzzle")? {
