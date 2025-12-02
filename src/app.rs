@@ -10,7 +10,7 @@ const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 // Server function to check if username is admin (only one we need to add)
 async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
-    use std::env;
+    // use std::env;
     let admin_username = "jani";
     Ok(username == admin_username)
 }
@@ -62,6 +62,8 @@ pub fn App() -> Element {
                             message.set("Please enter admin password".to_string());
                             return;
                         }
+                        joined.set(true);
+                        return;
                     }
                 }
 
@@ -72,7 +74,7 @@ pub fn App() -> Element {
                     None
                 };
 
-                match crate::backend::join(username_val.clone(), pwd).await {
+                match crate::backend::join(username_val.clone()).await {
                     Ok(msg) => {
                         message.set(msg);
                         joined.set(true);
