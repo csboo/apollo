@@ -1,16 +1,15 @@
 use dioxus::fullstack::{JsonEncoding, Streaming};
 use dioxus::prelude::*;
-use std::sync::{Arc, LazyLock, RwLock};
+use std::sync::{LazyLock, RwLock};
 use std::{env, process};
 
 pub use models::*;
 mod models;
 
-static PUZZLES: LazyLock<Arc<RwLock<PuzzleSolutions>>> =
-    LazyLock::new(|| Arc::new(RwLock::new(PuzzleSolutions::new())));
+static PUZZLES: LazyLock<RwLock<PuzzleSolutions>> =
+    LazyLock::new(|| RwLock::new(PuzzleSolutions::new()));
 
-static TEAMS: LazyLock<Arc<RwLock<TeamsState>>> =
-    LazyLock::new(|| Arc::new(RwLock::new(TeamsState::new())));
+static TEAMS: LazyLock<RwLock<TeamsState>> = LazyLock::new(|| RwLock::new(TeamsState::new()));
 
 /// without `name`, the app won't run
 fn ensure_env_var(key: &str) -> String {
@@ -35,14 +34,14 @@ pub fn ensure_admin_env_vars() {
 pub static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_NEV"));
 static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_JELSZO"));
 
-/// streams current progress of the teams and existing puzzles
+/// streams current progress of the teams and existing puzzles with their values
 #[get("/api/state_json_stream")]
-pub async fn state_stream() -> Result<Streaming<(TeamsState, SolvedPuzzles), JsonEncoding>> {
+pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzleSolutions), JsonEncoding>> {
     Ok(Streaming::spawn(|tx| async move {
         while tx
             .unbounded_send((
                 TEAMS.read().unwrap().clone(),
-                PUZZLES.read().unwrap().keys().cloned().collect(),
+                PUZZLES.read().unwrap().clone(),
             ))
             .is_ok()
         {
@@ -65,8 +64,10 @@ pub async fn join(username: String) -> Result<String, HttpError> {
 #[post("/api/submit")]
 pub async fn submit_solution(
     username: String,
-    puzzle: usize,
-    solution: i32,
+    puzzle_id: PuzzleId,
+    solution: PuzzleSolution,
+    // only needed if submitting (setting) as `ADMIN`
+    value: Option<PuzzleValue>,
     password: Option<String>,
 ) -> Result<String, HttpError> {
     // submitting as admin
@@ -76,9 +77,10 @@ pub async fn submit_solution(
         }
 
         let puzzles = &mut PUZZLES.write().unwrap();
-        (!puzzles.contains_key(&puzzle))
+        (!puzzles.contains_key(&puzzle_id))
             .or_forbidden("a solution for this puzzle is already set")?;
-        puzzles.insert(puzzle, solution);
+        let set_puzzle = Puzzle::new(solution, value.or_bad_request("missing solution")?);
+        puzzles.insert(puzzle_id, set_puzzle);
         return Ok("beallitottam a megoldast".to_string());
     }
 
@@ -88,9 +90,14 @@ pub async fn submit_solution(
         .or_forbidden("no such team in the competition, join first")?;
 
     let puzzles = &mut PUZZLES.read().unwrap();
-    if solution == *puzzles.get(&puzzle).or_not_found("no such puzzle")? {
+    if solution
+        == puzzles
+            .get(&puzzle_id)
+            .or_not_found("no such puzzle")?
+            .solution()
+    {
         team_state
-            .insert(puzzle)
+            .insert(puzzle_id)
             .or_forbidden("already solved this puzzle")?;
         Ok(String::from("oke, megoldottad, elmentettem!"))
     } else {
