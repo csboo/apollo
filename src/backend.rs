@@ -34,17 +34,22 @@ pub fn ensure_admin_env_vars() {
 pub static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_NEV"));
 static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_JELSZO"));
 
+fn get_game_state() -> (TeamsState, PuzzlesExisting) {
+    let existing_puzzles = PUZZLES
+        .read()
+        .unwrap()
+        .clone()
+        .into_iter()
+        .map(|(id, sol)| (id, sol.value))
+        .collect();
+    (TEAMS.read().unwrap().clone(), existing_puzzles)
+}
+
 /// streams current progress of the teams and existing puzzles with their values
 #[get("/api/state_json_stream")]
-pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzleSolutions), CborEncoding>> {
+pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), CborEncoding>> {
     Ok(Streaming::spawn(|tx| async move {
-        while tx
-            .unbounded_send((
-                TEAMS.read().unwrap().clone(),
-                PUZZLES.read().unwrap().clone(),
-            ))
-            .is_ok()
-        {
+        while tx.unbounded_send(get_game_state()).is_ok() {
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
         }
     }))
@@ -94,7 +99,7 @@ pub async fn submit_solution(
         == *puzzles
             .get(&puzzle_id)
             .or_not_found("no such puzzle")?
-            .solution()
+            .solution
     {
         team_state
             .insert(puzzle_id)
