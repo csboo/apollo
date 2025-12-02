@@ -53,7 +53,7 @@ fn get_game_state() -> (TeamsState, PuzzlesExisting) {
 }
 
 /// streams current progress of the teams and existing puzzles with their values
-#[get("/api/state_json_stream")]
+#[get("/api/state")]
 pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), CborEncoding>> {
     Ok(Streaming::spawn(|tx| async move {
         while tx.unbounded_send(get_game_state()).is_ok() {
@@ -72,7 +72,7 @@ pub async fn join(username: String) -> Result<String, HttpError> {
     Ok(String::from("helo, mehet!"))
 }
 
-/// submit a solution either as a team, or as `ADMIN_USERNAME` with a `password`
+/// submit a solution either as a team, or as `ADMIN_USERNAME` with a `password` and `value`
 #[post("/api/submit")]
 pub async fn submit_solution(
     username: String,
@@ -91,7 +91,7 @@ pub async fn submit_solution(
         let puzzles = &mut PUZZLES.write().unwrap();
         (!puzzles.contains_key(&puzzle_id))
             .or_forbidden("a solution for this puzzle is already set")?;
-        let set_puzzle = Puzzle::new(solution, value.or_bad_request("missing solution")?);
+        let set_puzzle = Puzzle::new(solution, value.or_bad_request("missing value")?);
         puzzles.insert(puzzle_id, set_puzzle);
         return Ok("beallitottam a megoldast".to_string());
     }
