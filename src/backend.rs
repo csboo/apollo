@@ -91,7 +91,7 @@ pub async fn submit_solution(
 
     let puzzles = &mut PUZZLES.read().unwrap();
     if solution
-        == puzzles
+        == *puzzles
             .get(&puzzle_id)
             .or_not_found("no such puzzle")?
             .solution()
