@@ -1,4 +1,4 @@
-use dioxus::fullstack::{JsonEncoding, Streaming};
+use dioxus::fullstack::{CborEncoding, Streaming};
 use dioxus::prelude::*;
 use std::sync::{LazyLock, RwLock};
 use std::{env, process};
@@ -36,7 +36,7 @@ static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLL
 
 /// streams current progress of the teams and existing puzzles with their values
 #[get("/api/state_json_stream")]
-pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzleSolutions), JsonEncoding>> {
+pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzleSolutions), CborEncoding>> {
     Ok(Streaming::spawn(|tx| async move {
         while tx
             .unbounded_send((

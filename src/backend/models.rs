@@ -1,11 +1,13 @@
 use dioxus::fullstack::serde;
 use std::collections::{BTreeSet, HashMap};
 
+/// NOTE: on (de)serialization `solution` is skipped
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 #[serde(crate = "dioxus::fullstack::serde")]
 pub struct Puzzle {
     #[serde(skip)]
     solution: PuzzleSolution,
+    /// how much it's worth
     value: PuzzleValue,
 }
 impl Puzzle {
