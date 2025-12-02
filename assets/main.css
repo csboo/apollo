@@ -1,8 +1,12 @@
 /* App-wide styling */
+* {
+    border: solid 1px blue;
+}
+
 body {
     background-color: #0f1116;
     color: #ffffff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     margin: 20px;
 }
 
@@ -46,8 +50,8 @@ body {
 #navbar {
     display: flex;
     flex-direction: row;
-  }
-  
+}
+
 #navbar a {
     color: #ffffff;
     margin-right: 20px;
@@ -63,8 +67,8 @@ body {
 /* Blog page */
 #blog {
     margin-top: 50px;
-  }
-  
+}
+
 #blog a {
     color: #ffffff;
     margin-top: 50px;
@@ -81,12 +85,11 @@ body {
     border-radius: 10px;
 }
 
-#echo>h4 {
+#echo > h4 {
     margin: 0px 0px 15px 0px;
 }
 
-
-#echo>input {
+#echo > input {
     border: none;
     border-bottom: 1px white solid;
     background-color: transparent;
@@ -98,10 +101,10 @@ body {
     width: 100%;
 }
 
-#echo>input:focus {
+#echo > input:focus {
     border-bottom-color: #6d85c6;
 }
 
-#echo>p {
+#echo > p {
     margin: 20px 0px 0px auto;
 }

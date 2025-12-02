@@ -1,15 +1,221 @@
 use dioxus::prelude::*;
+use std::collections::{BTreeSet, HashMap};
+
+use crate::backend::{PuzzleSolutions, TeamsState};
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const HEADER_SVG: Asset = asset!("/assets/header.svg");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
+// Server function to check if username is admin (only one we need to add)
+async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
+    use std::env;
+    let admin_username = "jani";
+    Ok(username == admin_username)
+}
+
 #[component]
 pub fn App() -> Element {
+    // State management
+    let mut username = use_signal(|| String::new());
+    let mut password = use_signal(|| String::new());
+    let mut puzzle_id = use_signal(|| String::new());
+    let mut solution = use_signal(|| String::new());
+    let mut joined = use_signal(|| false);
+    let mut is_admin = use_signal(|| false);
+    let mut show_password_prompt = use_signal(|| false);
+    let mut teams_state = use_signal(|| TeamsState::new());
+    let mut puzzles = use_signal(|| BTreeSet::new());
+    let mut message = use_signal(|| String::new());
+
+    use_future(move || async move {
+        // Call the SSE endpoint to get a stream of events
+        let mut stream = crate::backend::state_stream().await?;
+
+        // And then poll it for new events, adding them to our signal
+        while let Some(Ok(data)) = stream.next().await {
+            teams_state.set(data.0);
+            puzzles.set(data.1);
+        }
+
+        dioxus::Ok(())
+    });
+
+    // Handle join/submit button click
+    let handle_action = move |_| {
+        spawn(async move {
+            let username_val = username.read().clone();
+            let password_val = password.read().clone();
+            let is_joined = *joined.read();
+            let admin = *is_admin.read();
+
+            if !is_joined {
+                // Check if username is admin before joining
+                if let Ok(is_admin_user) = check_admin_username(username_val.clone()).await {
+                    if is_admin_user {
+                        is_admin.set(true);
+                        show_password_prompt.set(true);
+
+                        // If password is empty, don't proceed yet
+                        if password_val.is_empty() {
+                            message.set("Please enter admin password".to_string());
+                            return;
+                        }
+                    }
+                }
+
+                // Join team - call backend function directly
+                let pwd = if admin || *show_password_prompt.read() {
+                    Some(password_val.clone())
+                } else {
+                    None
+                };
+
+                match crate::backend::join(username_val.clone(), pwd).await {
+                    Ok(msg) => {
+                        message.set(msg);
+                        joined.set(true);
+                        password.set(String::new());
+                        show_password_prompt.set(false);
+                    }
+                    Err(e) => {
+                        message.set(format!("Error: {}", e));
+                    }
+                }
+            } else {
+                // Submit solution - call backend function directly
+                let puzzle_val = puzzle_id.read().clone();
+                let solution_val = solution.read().clone();
+
+                if let Ok(puzzle_num) = puzzle_val.parse::<usize>() {
+                    if let Ok(solution_num) = solution_val.parse::<i32>() {
+                        let pwd = if admin {
+                            Some(password_val.clone())
+                        } else {
+                            None
+                        };
+
+                        match crate::backend::submit_solution(
+                            username_val.clone(),
+                            puzzle_num,
+                            solution_num,
+                            pwd,
+                        )
+                        .await
+                        {
+                            Ok(msg) => {
+                                message.set(msg);
+                                puzzle_id.set(String::new());
+                                solution.set(String::new());
+                                password.set(String::new());
+                            }
+                            Err(e) => {
+                                message.set(format!("Error: {}", e));
+                            }
+                        }
+                    } else {
+                        message.set("Invalid solution number".to_string());
+                    }
+                } else {
+                    message.set("Invalid puzzle ID".to_string());
+                }
+            }
+        });
+    };
+
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
-        document::Link { rel: "stylesheet", href: MAIN_CSS } document::Link { rel: "stylesheet", href: TAILWIND_CSS }
-        "helo"
+        document::Link { rel: "stylesheet", href: MAIN_CSS }
+        document::Link { rel: "stylesheet", href: TAILWIND_CSS }
+
+        div { class: "container",
+            h1 { "Apollo Hackathon Tracker" }
+
+            // Input section
+            div { class: "input-section",
+                if !*joined.read() {
+                    // Join form
+                    input {
+                        r#type: "text",
+                        placeholder: "Username",
+                        value: "{username}",
+                        oninput: move |evt| username.set(evt.value())
+                    }
+
+                    if *show_password_prompt.read() {
+                        input {
+                            r#type: "password",
+                            placeholder: "Admin Password",
+                            value: "{password}",
+                            oninput: move |evt| password.set(evt.value())
+                        }
+                    }
+
+                    button { onclick: handle_action, "Join" }
+                } else {
+                    // Submit form
+                    input {
+                        r#type: "text",
+                        placeholder: "Puzzle ID",
+                        value: "{puzzle_id}",
+                        oninput: move |evt| puzzle_id.set(evt.value())
+                    }
+
+                    input {
+                        r#type: "text",
+                        placeholder: "Solution",
+                        value: "{solution}",
+                        oninput: move |evt| solution.set(evt.value())
+                    }
+
+                    if *is_admin.read() {
+                        input {
+                            r#type: "password",
+                            placeholder: "Admin Password",
+                            value: "{password}",
+                            oninput: move |evt| password.set(evt.value())
+                        }
+                    }
+
+                    button { onclick: handle_action, "Send" }
+                }
+            }
+
+            // Message display
+            if !message.read().is_empty() {
+                div { class: "message", "{message}" }
+            }
+
+            // Teams and puzzles table
+            div { class: "table-container",
+                table {
+                    thead {
+                        tr {
+                            th { "Team" }
+                            for puzzle in puzzles.read().iter() {
+                                th { "Puzzle {puzzle}" }
+                            }
+                        }
+                    }
+                    tbody {
+                        for (team_name, solved) in teams_state.read().iter() {
+                            tr {
+                                td { "{team_name}" }
+                                for puzzle in puzzles.read().iter() {
+                                    td {
+                                        if solved.contains(puzzle) {
+                                            "X"
+                                        } else {
+                                            ""
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
