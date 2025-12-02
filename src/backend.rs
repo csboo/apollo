@@ -13,16 +13,27 @@ static TEAMS: LazyLock<Arc<RwLock<TeamsState>>> =
     LazyLock::new(|| Arc::new(RwLock::new(TeamsState::new())));
 
 /// without `name`, the app won't run
-fn needed_env_var(key: &str) -> String {
+fn ensure_env_var(key: &str) -> String {
     let Ok(value) = env::var(key) else {
         error!("{key:?} env var not set, can't proceed");
         process::exit(1);
     };
+    if value.is_empty() {
+        error!("{key:?} env var empty, can't proceed");
+        process::exit(1);
+    }
     value
 }
 
-static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| needed_env_var("APOLLO_MESTER_NEV"));
-static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| needed_env_var("APOLLO_MESTER_JELSZO"));
+/// # exits with 1
+/// if necessary admin env vars aren't set
+pub fn ensure_admin_env_vars() {
+    _ = LazyLock::force(&ADMIN_PASSWORD);
+    _ = LazyLock::force(&ADMIN_USERNAME);
+}
+
+pub static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_NEV"));
+static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_JELSZO"));
 
 /// returns current progress of the teams and existing puzzles
 #[get("/api/state_json_stream")]
