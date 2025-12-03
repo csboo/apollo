@@ -1,7 +1,9 @@
-use dioxus::prelude::*;
+use dioxus::{html::th, prelude::*};
+use dioxus_primitives::{ContentAlign, ContentSide};
 
 use crate::{
     backend::{PuzzlesExisting, TeamsState},
+    components::tooltip::*,
 };
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -204,7 +206,18 @@ pub fn App() -> Element {
                         tr {
                             th { class: "text-left pl-2", "." }
                             for (id, value) in puzzles.read().iter() {
-                                th { "Puzzle {id}" }
+                                th {
+                                    Tooltip {
+                                        TooltipTrigger { "Puzzle {id}" }
+                                        TooltipContent {
+                                            side: ContentSide::Top,
+                                            align: ContentAlign::Center,
+                                            div { class: "p-2 border border-(--dark2) rounded-md bg-(--dark)",
+                                                "value: {value}"
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
