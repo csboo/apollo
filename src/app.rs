@@ -25,6 +25,7 @@ pub fn App() -> Element {
     let mut password = use_signal(|| String::new());
     let mut puzzle_id = use_signal(|| String::new());
     let mut puzzle_solution = use_signal(|| String::new());
+    let mut puzzle_value = use_signal(|| String::new());
     let mut joined = use_signal(|| false);
     let mut is_admin = use_signal(|| false);
     let mut show_password_prompt = use_signal(|| false);
@@ -92,7 +93,8 @@ pub fn App() -> Element {
                 // Submit solution - call backend function directly
                 let puzzle_current = puzzle_id.read().clone();
                 let solution_current = puzzle_solution.read().clone();
-                // let value_current = puzzle_value_FROMUI.read().clone();
+                let value_current = puzzle_value.read().clone();
+                let value_current_num = value_current.parse::<u32>().unwrap();
 
                 let pwd = if admin {
                     Some(password_current.clone())
@@ -104,7 +106,7 @@ pub fn App() -> Element {
                     username_current.clone(),
                     puzzle_current,
                     solution_current,
-                    None,
+                    Some(value_current_num),
                     pwd,
                 )
                 .await
@@ -166,6 +168,15 @@ pub fn App() -> Element {
                         placeholder: "Solution",
                         value: "{puzzle_solution}",
                         oninput: move |evt| puzzle_solution.set(evt.value())
+                    }
+
+                    if *is_admin.read() {
+                        input { class: "ml-4 {INPUT}",
+                            r#type: "text",
+                            placeholder: "Puzlle Value",
+                            value: "{puzzle_value}",
+                            oninput: move |evt| puzzle_value.set(evt.value())
+                        }
                     }
 
                     if *is_admin.read() {
