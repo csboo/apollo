@@ -193,10 +193,10 @@ pub fn App() -> Element {
 
             // Teams and puzzles table
             div { class: "table-container",
-                table {
+                table { class: "mt-5",
                     thead {
                         tr {
-                            th { "Team" }
+                            th { class: "text-left pl-2", "." }
                             for puzzle in puzzles.read().iter() {
                                 th { "Puzzle {puzzle}" }
                             }
@@ -205,9 +205,9 @@ pub fn App() -> Element {
                     tbody {
                         for (team_name, solved) in teams_state.read().iter() {
                             tr {
-                                td { "{team_name}" }
+                                td { class: "text-left pl-2 bg-(--dark2)", "{team_name}" }
                                 for puzzle in puzzles.read().iter() {
-                                    td {
+                                    td { class: "bg-(--dark) text-center",
                                         if solved.contains(puzzle) {
                                             "X"
                                         } else {
