@@ -24,7 +24,7 @@ pub fn App() -> Element {
     let mut username = use_signal(|| String::new());
     let mut password = use_signal(|| String::new());
     let mut puzzle_id = use_signal(|| String::new());
-    let mut solution = use_signal(|| String::new());
+    let mut puzzle_solution = use_signal(|| String::new());
     let mut joined = use_signal(|| false);
     let mut is_admin = use_signal(|| false);
     let mut show_password_prompt = use_signal(|| false);
@@ -48,20 +48,20 @@ pub fn App() -> Element {
     // Handle join/submit button click
     let handle_action = move |_| {
         spawn(async move {
-            let username_val = username.read().clone();
-            let password_val = password.read().clone();
+            let username_current = username.read().clone();
+            let password_current = password.read().clone();
             let is_joined = *joined.read();
             let admin = *is_admin.read();
 
             if !is_joined {
                 // Check if username is admin before joining
-                if let Ok(is_admin_user) = check_admin_username(username_val.clone()).await {
+                if let Ok(is_admin_user) = check_admin_username(username_current.clone()).await {
                     if is_admin_user {
                         is_admin.set(true);
                         show_password_prompt.set(true);
 
                         // If password is empty, don't proceed yet
-                        if password_val.is_empty() {
+                        if password_current.is_empty() {
                             message.set("Please enter admin password".to_string());
                             return;
                         }
@@ -72,12 +72,12 @@ pub fn App() -> Element {
 
                 // Join team - call backend function directly
                 let pwd = if admin || *show_password_prompt.read() {
-                    Some(password_val.clone())
+                    Some(password_current.clone())
                 } else {
                     None
                 };
 
-                match crate::backend::join(username_val.clone()).await {
+                match crate::backend::join(username_current.clone()).await {
                     Ok(msg) => {
                         message.set(msg);
                         joined.set(true);
@@ -90,19 +90,20 @@ pub fn App() -> Element {
                 }
             } else {
                 // Submit solution - call backend function directly
-                let puzzle_val = puzzle_id.read().clone();
-                let solution_val = solution.read().clone();
+                let puzzle_current = puzzle_id.read().clone();
+                let solution_current = puzzle_solution.read().clone();
                 // let value_current = puzzle_value_FROMUI.read().clone();
+
                 let pwd = if admin {
-                    Some(password_val.clone())
+                    Some(password_current.clone())
                 } else {
                     None
                 };
 
                 match crate::backend::submit_solution(
                     username_current.clone(),
-                    puzzle_val,
-                    solution_val,
+                    puzzle_current,
+                    solution_current,
                     None,
                     pwd,
                 )
@@ -111,7 +112,7 @@ pub fn App() -> Element {
                     Ok(msg) => {
                         message.set(msg);
                         puzzle_id.set(String::new());
-                        solution.set(String::new());
+                        puzzle_solution.set(String::new());
                         password.set(String::new());
                     }
                     Err(e) => {
@@ -163,8 +164,8 @@ pub fn App() -> Element {
                     input { class: "ml-4 {INPUT}",
                         r#type: "text",
                         placeholder: "Solution",
-                        value: "{solution}",
-                        oninput: move |evt| solution.set(evt.value())
+                        value: "{puzzle_solution}",
+                        oninput: move |evt| puzzle_solution.set(evt.value())
                     }
 
                     if *is_admin.read() {
