@@ -1,7 +1,8 @@
 use dioxus::prelude::*;
-use std::collections::{BTreeSet, HashMap};
 
-use crate::backend::{PuzzleSolutions, TeamsState};
+use crate::{
+    backend::{PuzzlesExisting, TeamsState},
+};
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
@@ -28,7 +29,7 @@ pub fn App() -> Element {
     let mut is_admin = use_signal(|| false);
     let mut show_password_prompt = use_signal(|| false);
     let mut teams_state = use_signal(|| TeamsState::new());
-    let mut puzzles = use_signal(|| BTreeSet::new());
+    let mut puzzles = use_signal(|| PuzzlesExisting::new());
     let mut message = use_signal(|| String::new());
 
     use_future(move || async move {
@@ -91,38 +92,31 @@ pub fn App() -> Element {
                 // Submit solution - call backend function directly
                 let puzzle_val = puzzle_id.read().clone();
                 let solution_val = solution.read().clone();
-
-                if let Ok(puzzle_num) = puzzle_val.parse::<usize>() {
-                    if let Ok(solution_num) = solution_val.parse::<i32>() {
-                        let pwd = if admin {
-                            Some(password_val.clone())
-                        } else {
-                            None
-                        };
-
-                        match crate::backend::submit_solution(
-                            username_val.clone(),
-                            puzzle_num,
-                            solution_num,
-                            pwd,
-                        )
-                        .await
-                        {
-                            Ok(msg) => {
-                                message.set(msg);
-                                puzzle_id.set(String::new());
-                                solution.set(String::new());
-                                password.set(String::new());
-                            }
-                            Err(e) => {
-                                message.set(format!("Error: {}", e));
-                            }
-                        }
-                    } else {
-                        message.set("Invalid solution number".to_string());
-                    }
+                // let value_current = puzzle_value_FROMUI.read().clone();
+                let pwd = if admin {
+                    Some(password_val.clone())
                 } else {
-                    message.set("Invalid puzzle ID".to_string());
+                    None
+                };
+
+                match crate::backend::submit_solution(
+                    username_current.clone(),
+                    puzzle_val,
+                    solution_val,
+                    None,
+                    pwd,
+                )
+                .await
+                {
+                    Ok(msg) => {
+                        message.set(msg);
+                        puzzle_id.set(String::new());
+                        solution.set(String::new());
+                        password.set(String::new());
+                    }
+                    Err(e) => {
+                        message.set(format!("Error: {}", e));
+                    }
                 }
             }
         });
@@ -197,8 +191,8 @@ pub fn App() -> Element {
                     thead {
                         tr {
                             th { class: "text-left pl-2", "." }
-                            for puzzle in puzzles.read().iter() {
-                                th { "Puzzle {puzzle}" }
+                            for (id, value) in puzzles.read().iter() {
+                                th { "Puzzle {id}" }
                             }
                         }
                     }
@@ -206,9 +200,9 @@ pub fn App() -> Element {
                         for (team_name, solved) in teams_state.read().iter() {
                             tr {
                                 td { class: "text-left pl-2 bg-(--dark2)", "{team_name}" }
-                                for puzzle in puzzles.read().iter() {
+                                for (puzzle_id, _puzzle) in puzzles.read().iter() {
                                     td { class: "bg-(--dark) text-center",
-                                        if solved.contains(puzzle) {
+                                        if solved.contains(puzzle_id) {
                                             "X"
                                         } else {
                                             ""
