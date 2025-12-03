@@ -7,6 +7,8 @@ const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const HEADER_SVG: Asset = asset!("/assets/header.svg");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
+const BUTTON: &str = "ml-4 w-30 px-3 py-2 rounded-lg border border-(--dark2) bg-(--middle) text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+const INPUT: &str = "w-50 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
 
 // Server function to check if username is admin (only one we need to add)
 async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
@@ -138,7 +140,7 @@ pub fn App() -> Element {
             div { class: "input-section",
                 if !*joined.read() {
                     // Join form
-                    input {
+                    input { class: INPUT,
                         r#type: "text",
                         placeholder: "Username",
                         value: "{username}",
@@ -146,7 +148,7 @@ pub fn App() -> Element {
                     }
 
                     if *show_password_prompt.read() {
-                        input {
+                        input { class: "ml-4 {INPUT}",
                             r#type: "password",
                             placeholder: "Admin Password",
                             value: "{password}",
@@ -154,17 +156,17 @@ pub fn App() -> Element {
                         }
                     }
 
-                    button { onclick: handle_action, "Join" }
+                    button { class: BUTTON, onclick: handle_action, "Join" }
                 } else {
                     // Submit form
-                    input {
+                    input { class: INPUT,
                         r#type: "text",
                         placeholder: "Puzzle ID",
                         value: "{puzzle_id}",
                         oninput: move |evt| puzzle_id.set(evt.value())
                     }
 
-                    input {
+                    input { class: "ml-4 {INPUT}",
                         r#type: "text",
                         placeholder: "Solution",
                         value: "{solution}",
@@ -172,7 +174,7 @@ pub fn App() -> Element {
                     }
 
                     if *is_admin.read() {
-                        input {
+                        input { class: "ml-4 {INPUT}",
                             r#type: "password",
                             placeholder: "Admin Password",
                             value: "{password}",
@@ -180,7 +182,7 @@ pub fn App() -> Element {
                         }
                     }
 
-                    button { onclick: handle_action, "Send" }
+                    button { class: BUTTON, onclick: handle_action, "Send" }
                 }
             }
 
