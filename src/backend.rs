@@ -28,10 +28,8 @@ fn ensure_env_var(key: &str) -> String {
 /// if necessary admin env vars aren't set
 pub fn ensure_admin_env_vars() {
     _ = LazyLock::force(&ADMIN_PASSWORD);
-    _ = LazyLock::force(&ADMIN_USERNAME);
 }
 
-pub static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_NEV"));
 static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_JELSZO"));
 static EVENT_TITLE: LazyLock<Result<String, env::VarError>> =
     LazyLock::new(|| env::var("APOLLO_EVENT_TITLE"));
@@ -66,36 +64,38 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), C
 #[post("/api/join")]
 pub async fn join(username: String) -> Result<String, HttpError> {
     let teams = &mut TEAMS.write().unwrap();
-    (username != *ADMIN_USERNAME && !teams.contains_key(&username))
-        .or_forbidden("taken username")?;
+    (!teams.contains_key(&username)).or_forbidden("taken username")?;
     _ = teams.insert(username, SolvedPuzzles::new());
     Ok(String::from("helo, mehet!"))
 }
 
-/// submit a solution either as a team, or as `ADMIN_USERNAME` with a `password` and `value`
+/// set `puzzle_id`'s a `solution` and `value` with `ADMIN_PASSWORD`
+#[post("/api/set_solution")]
+pub async fn set_solution(
+    puzzle_solutions: PuzzleSolutions,
+    password: String,
+) -> Result<String, HttpError> {
+    // submitting as admin
+    (*ADMIN_PASSWORD == password).or_unauthorized("incorrect password for APOLLO_MESTER")?;
+
+    let puzzles_state = &mut PUZZLES.write().unwrap();
+    puzzle_solutions
+        .keys()
+        .any(|new_k| !puzzles_state.contains_key(new_k))
+        .or_forbidden("one of the puzzles already set")?;
+
+    puzzles_state.extend(puzzle_solutions);
+
+    Ok(String::from("beallitottam a megoldast"))
+}
+
+/// submit a solution as a team
 #[post("/api/submit")]
 pub async fn submit_solution(
     username: String,
     puzzle_id: PuzzleId,
     solution: PuzzleSolution,
-    // only needed if submitting (setting) as `ADMIN`
-    value: Option<PuzzleValue>,
-    password: Option<String>,
 ) -> Result<String, HttpError> {
-    // submitting as admin
-    if *ADMIN_USERNAME == username {
-        if *ADMIN_PASSWORD != password.or_bad_request("password is required for APOLLO_MESTER")? {
-            return HttpError::unauthorized("incorrect password for APOLLO_MESTER")?;
-        }
-
-        let puzzles = &mut PUZZLES.write().unwrap();
-        (!puzzles.contains_key(&puzzle_id))
-            .or_forbidden("a solution for this puzzle is already set")?;
-        let set_puzzle = Puzzle::new(solution, value.or_bad_request("missing value")?);
-        puzzles.insert(puzzle_id, set_puzzle);
-        return Ok("beallitottam a megoldast".to_string());
-    }
-
     let teams = &mut TEAMS.write().unwrap();
     let team_state = teams
         .get_mut(&username)
