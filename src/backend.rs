@@ -39,7 +39,7 @@ pub async fn event_title() -> Result<String> {
     Ok(EVENT_TITLE.clone()?)
 }
 
-fn get_game_state() -> (TeamsState, PuzzlesExisting) {
+async fn get_game_state() -> (TeamsState, PuzzlesExisting) {
     let existing_puzzles = PUZZLES
         .read()
         .unwrap()
@@ -50,11 +50,26 @@ fn get_game_state() -> (TeamsState, PuzzlesExisting) {
     (TEAMS.read().unwrap().clone(), existing_puzzles)
 }
 
+/// just save a copy of the `PUZZLES` and `TEAMS` state to disk into a `cbor` file
+/// TODO: add basic encryption using `ADMIN_PASSWORD`
+#[server]
+async fn backup_state() -> Result<()> {
+    let teams_state = TEAMS.read().unwrap().clone();
+    let puzzles_state = PUZZLES.read().unwrap().clone();
+    let mut buf = vec![];
+    ciborium::into_writer(&(teams_state, puzzles_state), &mut buf)
+        .inspect_err(|e| error!("couldn't serialize into cbor: {e}"))?;
+    tokio::fs::write("apollo-state.cbor", buf)
+        .await
+        .inspect_err(|e| error!("couldn't write state to file: {e}"))?;
+    Ok(())
+}
+
 /// streams current progress of the teams and existing puzzles with their values
 #[get("/api/state")]
 pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), CborEncoding>> {
     Ok(Streaming::spawn(|tx| async move {
-        while tx.unbounded_send(get_game_state()).is_ok() {
+        while tx.unbounded_send(get_game_state().await).is_ok() {
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
         }
     }))
@@ -63,6 +78,7 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), C
 /// join the competition as a contestant team
 #[post("/api/join")]
 pub async fn join(username: String) -> Result<String, HttpError> {
+    _ = backup_state().await;
     let teams = &mut TEAMS.write().unwrap();
     (!teams.contains_key(&username)).or_forbidden("taken username")?;
     _ = teams.insert(username, SolvedPuzzles::new());
@@ -75,6 +91,7 @@ pub async fn set_solution(
     puzzle_solutions: PuzzleSolutions,
     password: String,
 ) -> Result<String, HttpError> {
+    _ = backup_state().await;
     // submitting as admin
     (*ADMIN_PASSWORD == password).or_unauthorized("incorrect password for APOLLO_MESTER")?;
 
@@ -96,6 +113,7 @@ pub async fn submit_solution(
     puzzle_id: PuzzleId,
     solution: PuzzleSolution,
 ) -> Result<String, HttpError> {
+    _ = backup_state().await;
     let teams = &mut TEAMS.write().unwrap();
     let team_state = teams
         .get_mut(&username)
