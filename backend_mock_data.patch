@@ -1,0 +1,34 @@
+src/backend.rs --- Rust
+ 6 pub use models::*;                                                     6 pub use models::*;
+ 7 mod models;                                                            7 mod models;
+ 8                                                                        8 
+ 9 static PUZZLES: LazyLock<RwLock<PuzzleSolutions>> =                    9 static PUZZLES: LazyLock<RwLock<PuzzleSolutions>> = LazyLock::new(|| 
+ .                                                                        . {
+10     LazyLock::new(|| RwLock::new(PuzzleSolutions::new()));            10     RwLock::new(PuzzleSolutions::from([
+..                                                                       11         ("1".to_string(), Puzzle::new("10".to_string(), 100)),
+..                                                                       12         ("2".to_string(), Puzzle::new("20".to_string(), 200)),
+..                                                                       13         ("3".to_string(), Puzzle::new("30".to_string(), 300)),
+..                                                                       14         ("4".to_string(), Puzzle::new("40".to_string(), 400)),
+..                                                                       15     ]))
+..                                                                       16 });
+11                                                                       17 
+12 static TEAMS: LazyLock<RwLock<TeamsState>> = LazyLock::new(|| RwLock: 18 static TEAMS: LazyLock<RwLock<TeamsState>> = LazyLock::new(|| {
+.. :new(TeamsState::new()));                                             .. 
+..                                                                       19     RwLock::new(TeamsState::from([
+..                                                                       20         ("feco".to_string(), SolvedPuzzles::from(["1".to_string()])),
+..                                                                       21         (
+..                                                                       22             "jero".to_string(),
+..                                                                       23             SolvedPuzzles::from(["1".to_string(), "2".to_string(), "3
+..                                                                       .. ".to_string()]),
+..                                                                       24         ),
+..                                                                       25         (
+..                                                                       26             "karo".to_string(),
+..                                                                       27             SolvedPuzzles::from(["1".to_string(), "3".to_string()]),
+..                                                                       28         ),
+..                                                                       29         ("genyo".to_string(), SolvedPuzzles::from(["".to_string()])),
+..                                                                       30     ]))
+..                                                                       31 });
+13                                                                       32 
+14 /// without `name`, the app won't run                                 33 /// without `name`, the app won't run
+15 fn ensure_env_var(key: &str) -> String {                              34 fn ensure_env_var(key: &str) -> String {
+
