@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use dioxus_primitives::{ContentAlign, ContentSide};
 
 use crate::{
-    backend::{Puzzle, PuzzleSolutions, PuzzlesExisting, TeamsState},
+    backend::models::{Puzzle, PuzzleSolutions, PuzzlesExisting, TeamsState},
     components::tooltip::*,
 };
 
@@ -40,7 +40,7 @@ pub fn App() -> Element {
 
     use_future(move || async move {
         title.set(
-            crate::backend::event_title()
+            crate::backend::endpoints::event_title()
                 .await
                 .inspect_err(|e| message.set(Some(format!("Error: {}", e))))
                 .ok(),
@@ -61,7 +61,7 @@ pub fn App() -> Element {
     use_future(move || async move {
         // Call the stream endpoint to get a stream of events
         trace!("calling state_stream");
-        let mut stream = crate::backend::state_stream().await?;
+        let mut stream = crate::backend::endpoints::state_stream().await?;
         trace!("got stream");
 
         // Then poll it for new events
@@ -101,7 +101,7 @@ pub fn App() -> Element {
                 }
             };
 
-            match crate::backend::join(username_current.clone()).await {
+            match crate::backend::endpoints::join(username_current.clone()).await {
                 Ok(msg) => {
                     message.set(Some(msg.clone()));
                     joined.set(true);
@@ -124,7 +124,7 @@ pub fn App() -> Element {
             // );
             if admin {
                 let value_current_num = value_current.parse::<u32>().unwrap();
-                match crate::backend::set_solution(
+                match crate::backend::endpoints::set_solution(
                     PuzzleSolutions::from([(
                         puzzle_current,
                         Puzzle {
@@ -150,7 +150,7 @@ pub fn App() -> Element {
                 return;
             }
 
-            match crate::backend::submit_solution(
+            match crate::backend::endpoints::submit_solution(
                 username_current.clone(),
                 puzzle_current,
                 solution_current,
