@@ -21,7 +21,9 @@ async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
 
 #[component]
 pub fn App() -> Element {
+    trace!("kicking off app");
     // State management variables
+    trace!("initing variables");
     let mut username = use_signal(|| String::new());
     let mut password = use_signal(|| String::new());
     let mut puzzle_id = use_signal(|| String::new());
@@ -33,15 +35,20 @@ pub fn App() -> Element {
     let mut teams_state = use_signal(|| TeamsState::new());
     let mut puzzles = use_signal(|| PuzzlesExisting::new());
     let mut message = use_signal(|| String::new());
+    trace!("variables inited");
 
     use_future(move || async move {
         // Call the stream endpoint to get a stream of events
+        trace!("calling state_stream");
         let mut stream = crate::backend::state_stream().await?;
+        trace!("got stream");
 
         // Then poll it for new events
         while let Some(Ok(data)) = stream.next().await {
+            trace!("got new data");
             teams_state.set(data.0);
             puzzles.set(data.1);
+            trace!("set new data");
         }
 
         dioxus::Ok(())
@@ -49,6 +56,7 @@ pub fn App() -> Element {
 
     // Handle join/submit button click
     let handle_action = move |_| async move {
+        trace!("action handler called");
         let username_current = username.read().clone();
         let password_current = password.read().clone();
         let is_joined = *joined.read();
@@ -87,6 +95,11 @@ pub fn App() -> Element {
             let puzzle_current = puzzle_id.read().clone();
             let solution_current = puzzle_solution.read().clone();
             let value_current = puzzle_value.read().clone();
+            // trace!(
+            //     "value is '{}' is_empty: '{}'",
+            //     &value_current,
+            //     &value_current.is_empty()
+            // );
             let value_current_num = value_current.parse::<u32>().unwrap();
 
             let pwd = if admin {
