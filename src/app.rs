@@ -1,4 +1,4 @@
-use dioxus::{html::th, prelude::*};
+use dioxus::prelude::*;
 use dioxus_primitives::{ContentAlign, ContentSide};
 
 use crate::{
@@ -8,12 +8,11 @@ use crate::{
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
-const HEADER_SVG: Asset = asset!("/assets/header.svg");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const BUTTON: &str = "ml-4 w-30 px-3 py-2 rounded-lg border border-(--dark2) bg-(--middle) text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
 const INPUT: &str = "w-50 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
 
-// Server function to check if username is admin (only one we need to add)
+// TODO could be handeled in much better ways
 async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
     // use std::env;
     let admin_username = "jani";
@@ -22,7 +21,7 @@ async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
 
 #[component]
 pub fn App() -> Element {
-    // State management
+    // State management variables
     let mut username = use_signal(|| String::new());
     let mut password = use_signal(|| String::new());
     let mut puzzle_id = use_signal(|| String::new());
@@ -36,10 +35,10 @@ pub fn App() -> Element {
     let mut message = use_signal(|| String::new());
 
     use_future(move || async move {
-        // Call the SSE endpoint to get a stream of events
+        // Call the stream endpoint to get a stream of events
         let mut stream = crate::backend::state_stream().await?;
 
-        // And then poll it for new events, adding them to our signal
+        // Then poll it for new events
         while let Some(Ok(data)) = stream.next().await {
             teams_state.set(data.0);
             puzzles.set(data.1);
@@ -49,82 +48,74 @@ pub fn App() -> Element {
     });
 
     // Handle join/submit button click
-    let handle_action = move |_| {
-        spawn(async move {
-            let username_current = username.read().clone();
-            let password_current = password.read().clone();
-            let is_joined = *joined.read();
-            let admin = *is_admin.read();
+    let handle_action = move |_| async move {
+        let username_current = username.read().clone();
+        let password_current = password.read().clone();
+        let is_joined = *joined.read();
+        let admin = *is_admin.read();
 
-            if !is_joined {
-                // Check if username is admin before joining
-                if let Ok(is_admin_user) = check_admin_username(username_current.clone()).await {
-                    if is_admin_user {
-                        is_admin.set(true);
-                        show_password_prompt.set(true);
+        if !is_joined {
+            // Check if username is admin before joining
+            if let Ok(is_admin_user) = check_admin_username(username_current.clone()).await {
+                if is_admin_user {
+                    is_admin.set(true);
+                    show_password_prompt.set(true);
 
-                        // If password is empty, don't proceed yet
-                        if password_current.is_empty() {
-                            message.set("Please enter admin password".to_string());
-                            return;
-                        }
-                        joined.set(true);
+                    // If password is empty, don't proceed yet
+                    if password_current.is_empty() {
+                        message.set("Please enter admin password".to_string());
                         return;
                     }
+                    joined.set(true);
+                    return;
                 }
+            };
 
-                // Join team - call backend function directly
-                let pwd = if admin || *show_password_prompt.read() {
-                    Some(password_current.clone())
-                } else {
-                    None
-                };
-
-                match crate::backend::join(username_current.clone()).await {
-                    Ok(msg) => {
-                        message.set(msg);
-                        joined.set(true);
-                        password.set(String::new());
-                        show_password_prompt.set(false);
-                    }
-                    Err(e) => {
-                        message.set(format!("Error: {}", e));
-                    }
+            match crate::backend::join(username_current.clone()).await {
+                Ok(msg) => {
+                    message.set(msg.clone());
+                    joined.set(true);
+                    password.set(String::new());
+                    show_password_prompt.set(false);
                 }
-            } else {
-                // Submit solution - call backend function directly
-                let puzzle_current = puzzle_id.read().clone();
-                let solution_current = puzzle_solution.read().clone();
-                let value_current = puzzle_value.read().clone();
-                let value_current_num = value_current.parse::<u32>().unwrap();
-
-                let pwd = if admin {
-                    Some(password_current.clone())
-                } else {
-                    None
-                };
-
-                match crate::backend::submit_solution(
-                    username_current.clone(),
-                    puzzle_current,
-                    solution_current,
-                    Some(value_current_num),
-                    pwd,
-                )
-                .await
-                {
-                    Ok(msg) => {
-                        message.set(msg);
-                        puzzle_id.set(String::new());
-                        puzzle_solution.set(String::new());
-                        password.set(String::new());
-                    }
-                    Err(e) => {
-                        message.set(format!("Error: {}", e));
-                    }
+                Err(e) => {
+                    message.set(format!("Error: {}", e));
                 }
             }
-        });
+        } else {
+            // Submit solution - call backend function directly
+            let puzzle_current = puzzle_id.read().clone();
+            let solution_current = puzzle_solution.read().clone();
+            let value_current = puzzle_value.read().clone();
+            let value_current_num = value_current.parse::<u32>().unwrap();
+
+            let pwd = if admin {
+                Some(password_current.clone())
+            } else {
+                None
+            };
+
+            match crate::backend::submit_solution(
+                username_current.clone(),
+                puzzle_current,
+                solution_current,
+                Some(value_current_num),
+                pwd,
+            )
+            .await
+            {
+                Ok(msg) => {
+                    message.set(msg);
+                    puzzle_id.set(String::new());
+                    puzzle_solution.set(String::new());
+                    puzzle_value.set(String::new());
+                    // password.set(String::new()); NOTE should remember password?
+                }
+                Err(e) => {
+                    message.set(format!("Error: {}", e));
+                }
+            }
+        }
     };
 
     rsx! {
@@ -133,7 +124,8 @@ pub fn App() -> Element {
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
         div { class: "container",
-            h1 { "Apollo Hackathon Tracker" }
+            // TODO get from envpoint
+            h1 { class: "mb-4 font-bold text-lg", "EVENT TITLE PLACEHOLDER" }
 
             // Input section
             div { class: "input-section",
