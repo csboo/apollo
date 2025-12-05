@@ -34,8 +34,19 @@ pub fn App() -> Element {
     let mut show_password_prompt = use_signal(|| false);
     let mut teams_state = use_signal(|| TeamsState::new());
     let mut puzzles = use_signal(|| PuzzlesExisting::new());
-    let mut message = use_signal(|| String::new());
+    let mut message = use_signal(|| None::<String>);
     trace!("variables inited");
+
+    use_effect(move || {
+        if message.read().is_some() {
+            // hide after 5 seconds
+            // let message = message.clone();
+            spawn(async move {
+                gloo_timers::future::sleep(std::time::Duration::from_secs(5)).await;
+                message.set(None);
+            });
+        }
+    });
 
     use_future(move || async move {
         // Call the stream endpoint to get a stream of events
@@ -71,7 +82,7 @@ pub fn App() -> Element {
 
                     // If password is empty, don't proceed yet
                     if password_current.is_empty() {
-                        message.set("Please enter admin password".to_string());
+                        message.set(Some("Please enter admin password".to_string()));
                         return;
                     }
                     joined.set(true);
@@ -81,13 +92,13 @@ pub fn App() -> Element {
 
             match crate::backend::join(username_current.clone()).await {
                 Ok(msg) => {
-                    message.set(msg.clone());
+                    message.set(Some(msg.clone()));
                     joined.set(true);
                     password.set(String::new());
                     show_password_prompt.set(false);
                 }
                 Err(e) => {
-                    message.set(format!("Error: {}", e));
+                    message.set(Some(format!("Error: {}", e)));
                 }
             }
         } else {
@@ -118,14 +129,14 @@ pub fn App() -> Element {
             .await
             {
                 Ok(msg) => {
-                    message.set(msg);
+                    message.set(Some(msg));
                     puzzle_id.set(String::new());
                     puzzle_solution.set(String::new());
                     puzzle_value.set(String::new());
                     // password.set(String::new()); NOTE should remember password?
                 }
                 Err(e) => {
-                    message.set(format!("Error: {}", e));
+                    message.set(Some(format!("Error: {}", e)));
                 }
             }
         }
@@ -200,8 +211,14 @@ pub fn App() -> Element {
             }
 
             // Message display
-            if !message.read().is_empty() {
-                div { class: "message", "{message}" }
+            // if !message.read().is_empty() {
+            //     div { class: "message", "{message}" }
+            // }
+            if let Some(msg) = &*message.read() {
+                div {
+                    class: "popup",
+                    "{msg}"
+                }
             }
 
             // Teams and puzzles table
