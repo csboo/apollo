@@ -1,8 +1,8 @@
 diff --git a/src/backend.rs b/src/backend.rs
-index 663f9c1..072ed95 100644
+index 663f9c1..ff4c693 100644
 --- a/src/backend.rs
 +++ b/src/backend.rs
-@@ -6,10 +6,29 @@ use std::{env, process};
+@@ -6,10 +6,53 @@ use std::{env, process};
  pub use models::*;
  mod models;
  
@@ -10,10 +10,34 @@ index 663f9c1..072ed95 100644
 -    LazyLock::new(|| RwLock::new(PuzzleSolutions::new()));
 +static PUZZLES: LazyLock<RwLock<PuzzleSolutions>> = LazyLock::new(|| {
 +    RwLock::new(PuzzleSolutions::from([
-+        ("1".to_string(), Puzzle::new("10".to_string(), 100)),
-+        ("2".to_string(), Puzzle::new("20".to_string(), 200)),
-+        ("3".to_string(), Puzzle::new("30".to_string(), 300)),
-+        ("4".to_string(), Puzzle::new("40".to_string(), 400)),
++        (
++            "1".to_string(),
++            Puzzle {
++                solution: "10".to_string(),
++                value: 100,
++            },
++        ),
++        (
++            "2".to_string(),
++            Puzzle {
++                solution: "20".to_string(),
++                value: 200,
++            },
++        ),
++        (
++            "3".to_string(),
++            Puzzle {
++                solution: "30".to_string(),
++                value: 300,
++            },
++        ),
++        (
++            "4".to_string(),
++            Puzzle {
++                solution: "40".to_string(),
++                value: 400,
++            },
++        ),
 +    ]))
 +});
  

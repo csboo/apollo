@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use dioxus_primitives::{ContentAlign, ContentSide};
 
 use crate::{
-    backend::{PuzzlesExisting, TeamsState},
+    backend::{Puzzle, PuzzleSolutions, PuzzlesExisting, TeamsState},
     components::tooltip::*,
 };
 
@@ -35,7 +35,17 @@ pub fn App() -> Element {
     let mut teams_state = use_signal(|| TeamsState::new());
     let mut puzzles = use_signal(|| PuzzlesExisting::new());
     let mut message = use_signal(|| None::<String>);
+    let mut title = use_signal(|| None::<String>);
     trace!("variables inited");
+
+    use_future(move || async move {
+        title.set(
+            crate::backend::event_title()
+                .await
+                .inspect_err(|e| message.set(Some(format!("Error: {}", e))))
+                .ok(),
+        );
+    });
 
     use_effect(move || {
         if message.read().is_some() {
@@ -66,6 +76,7 @@ pub fn App() -> Element {
     });
 
     // Handle join/submit button click
+    // TODO this is very ugly function thing make it better
     let handle_action = move |_| async move {
         trace!("action handler called");
         let username_current = username.read().clone();
@@ -111,20 +122,38 @@ pub fn App() -> Element {
             //     &value_current,
             //     &value_current.is_empty()
             // );
-            let value_current_num = value_current.parse::<u32>().unwrap();
-
-            let pwd = if admin {
-                Some(password_current.clone())
-            } else {
-                None
-            };
+            if admin {
+                let value_current_num = value_current.parse::<u32>().unwrap();
+                match crate::backend::set_solution(
+                    PuzzleSolutions::from([(
+                        puzzle_current,
+                        Puzzle {
+                            value: value_current_num,
+                            solution: solution_current,
+                        },
+                    )]),
+                    password_current,
+                )
+                .await
+                {
+                    Ok(msg) => {
+                        message.set(Some(msg));
+                        puzzle_id.set(String::new());
+                        puzzle_solution.set(String::new());
+                        puzzle_value.set(String::new());
+                        // password.set(String::new()); NOTE should remember password?
+                    }
+                    Err(e) => {
+                        message.set(Some(format!("Error: {}", e)));
+                    }
+                }
+                return;
+            }
 
             match crate::backend::submit_solution(
                 username_current.clone(),
                 puzzle_current,
                 solution_current,
-                Some(value_current_num),
-                pwd,
             )
             .await
             {
@@ -149,7 +178,14 @@ pub fn App() -> Element {
 
         div { class: "container",
             // TODO get from envpoint
-            h1 { class: "mb-4 font-bold text-lg", "EVENT TITLE PLACEHOLDER" }
+            // h1 { class: "mb-4 font-bold text-lg", "EVENT TITLE PLACEHOLDER" }
+            h1 { class: "mb-4 font-bold text-lg",
+                if let Some(t) = &*title.read() {
+                    "{t}",
+                } else {
+                    "Betöltés..."
+                }
+            }
 
             // Input section
             div { class: "input-section",

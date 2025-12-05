@@ -28,13 +28,18 @@ fn ensure_env_var(key: &str) -> String {
 /// if necessary admin env vars aren't set
 pub fn ensure_admin_env_vars() {
     _ = LazyLock::force(&ADMIN_PASSWORD);
-    _ = LazyLock::force(&ADMIN_USERNAME);
 }
 
-pub static ADMIN_USERNAME: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_NEV"));
 static ADMIN_PASSWORD: LazyLock<String> = LazyLock::new(|| ensure_env_var("APOLLO_MESTER_JELSZO"));
+static EVENT_TITLE: LazyLock<Result<String, env::VarError>> =
+    LazyLock::new(|| env::var("APOLLO_EVENT_TITLE"));
 
-fn get_game_state() -> (TeamsState, PuzzlesExisting) {
+#[get("/api/event_title")]
+pub async fn event_title() -> Result<String> {
+    Ok(EVENT_TITLE.clone()?)
+}
+
+async fn get_game_state() -> (TeamsState, PuzzlesExisting) {
     let existing_puzzles = PUZZLES
         .read()
         .unwrap()
@@ -45,11 +50,26 @@ fn get_game_state() -> (TeamsState, PuzzlesExisting) {
     (TEAMS.read().unwrap().clone(), existing_puzzles)
 }
 
+/// just save a copy of the `PUZZLES` and `TEAMS` state to disk into a `cbor` file
+/// TODO: add basic encryption using `ADMIN_PASSWORD`
+#[cfg(feature = "server")]
+async fn backup_state() -> Result<()> {
+    let teams_state = TEAMS.read().unwrap().clone();
+    let puzzles_state = PUZZLES.read().unwrap().clone();
+    let mut buf = vec![];
+    ciborium::into_writer(&(teams_state, puzzles_state), &mut buf)
+        .inspect_err(|e| error!("couldn't serialize into cbor: {e}"))?;
+    tokio::fs::write("apollo-state.cbor", buf)
+        .await
+        .inspect_err(|e| error!("couldn't write state to file: {e}"))?;
+    Ok(())
+}
+
 /// streams current progress of the teams and existing puzzles with their values
-#[get("/api/state_json_stream")]
+#[get("/api/state")]
 pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), CborEncoding>> {
     Ok(Streaming::spawn(|tx| async move {
-        while tx.unbounded_send(get_game_state()).is_ok() {
+        while tx.unbounded_send(get_game_state().await).is_ok() {
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
         }
     }))
@@ -58,37 +78,42 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), C
 /// join the competition as a contestant team
 #[post("/api/join")]
 pub async fn join(username: String) -> Result<String, HttpError> {
+    _ = backup_state().await;
     let teams = &mut TEAMS.write().unwrap();
-    (username != *ADMIN_USERNAME && !teams.contains_key(&username))
-        .or_forbidden("taken username")?;
+    (!teams.contains_key(&username)).or_forbidden("taken username")?;
     _ = teams.insert(username, SolvedPuzzles::new());
     Ok(String::from("helo, mehet!"))
 }
 
-/// submit a solution either as a team, or as `ADMIN_USERNAME` with a `password`
+/// set `puzzle_id`'s a `solution` and `value` with `ADMIN_PASSWORD`
+#[post("/api/set_solution")]
+pub async fn set_solution(
+    puzzle_solutions: PuzzleSolutions,
+    password: String,
+) -> Result<String, HttpError> {
+    _ = backup_state().await;
+    // submitting as admin
+    (*ADMIN_PASSWORD == password).or_unauthorized("incorrect password for APOLLO_MESTER")?;
+
+    let puzzles_state = &mut PUZZLES.write().unwrap();
+    puzzle_solutions
+        .keys()
+        .any(|new_k| !puzzles_state.contains_key(new_k))
+        .or_forbidden("one of the puzzles already set")?;
+
+    puzzles_state.extend(puzzle_solutions);
+
+    Ok(String::from("beallitottam a megoldast"))
+}
+
+/// submit a solution as a team
 #[post("/api/submit")]
 pub async fn submit_solution(
     username: String,
     puzzle_id: PuzzleId,
     solution: PuzzleSolution,
-    // only needed if submitting (setting) as `ADMIN`
-    value: Option<PuzzleValue>,
-    password: Option<String>,
 ) -> Result<String, HttpError> {
-    // submitting as admin
-    if *ADMIN_USERNAME == username {
-        if *ADMIN_PASSWORD != password.or_bad_request("password is required for APOLLO_MESTER")? {
-            return HttpError::unauthorized("incorrect password for APOLLO_MESTER")?;
-        }
-
-        let puzzles = &mut PUZZLES.write().unwrap();
-        (!puzzles.contains_key(&puzzle_id))
-            .or_forbidden("a solution for this puzzle is already set")?;
-        let set_puzzle = Puzzle::new(solution, value.or_bad_request("missing solution")?);
-        puzzles.insert(puzzle_id, set_puzzle);
-        return Ok("beallitottam a megoldast".to_string());
-    }
-
+    _ = backup_state().await;
     let teams = &mut TEAMS.write().unwrap();
     let team_state = teams
         .get_mut(&username)
