@@ -100,7 +100,7 @@ pub fn App() -> Element {
 
                     // If password is empty, don't proceed yet
                     if password_current.is_empty() {
-                        message.set(Some("Please enter admin password".to_string()));
+                        message.set(Some("Adja meg az admin jelszót".to_string()));
                         return;
                     }
                     joined.set(true);
@@ -199,7 +199,7 @@ pub fn App() -> Element {
                         // Join form
                         input { class: INPUT,
                             r#type: "text",
-                            placeholder: "Username",
+                            placeholder: "Csapatnév",
                             value: "{username}",
                             oninput: move |evt| username.set(evt.value())
                         }
@@ -207,13 +207,13 @@ pub fn App() -> Element {
                         if *show_password_prompt.read() {
                             input { class: "ml-4 {INPUT}",
                                 r#type: "password",
-                                placeholder: "Admin Password",
+                                placeholder: "Admin jelszó",
                                 value: "{password}",
                                 oninput: move |evt| password.set(evt.value())
                             }
                         }
 
-                        button { class: BUTTON, onclick: handle_action, "Join" }
+                        button { class: BUTTON, onclick: handle_action, "Belépés" }
                     } else {
                         // Submit form
                         input { class: INPUT,
@@ -225,7 +225,7 @@ pub fn App() -> Element {
 
                         input { class: "ml-4 {INPUT}",
                             r#type: "text",
-                            placeholder: "Solution",
+                            placeholder: "Megoldás",
                             value: "{puzzle_solution}",
                             oninput: move |evt| puzzle_solution.set(evt.value())
                         }
@@ -233,22 +233,23 @@ pub fn App() -> Element {
                         if *is_admin.read() {
                             input { class: "ml-4 {INPUT}",
                                 r#type: "text",
-                                placeholder: "Puzlle Value",
+                                placeholder: "Érték/Nyeremény",
                                 value: "{puzzle_value}",
                                 oninput: move |evt| puzzle_value.set(evt.value())
                             }
-                        }
 
-                        if *is_admin.read() {
                             input { class: "ml-4 {INPUT}",
                                 r#type: "password",
-                                placeholder: "Admin Password",
+                                placeholder: "Admin jelszó",
                                 value: "{password}",
                                 oninput: move |evt| password.set(evt.value())
                             }
+
+                            button { class: BUTTON, onclick: handle_action, "Beállítás" }
+                        } else {
+                            button { class: BUTTON, onclick: handle_action, "Küldés" }
                         }
 
-                        button { class: BUTTON, onclick: handle_action, "Send" }
                     }
                 }
 
