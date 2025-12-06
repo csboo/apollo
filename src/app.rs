@@ -36,6 +36,7 @@ pub fn App() -> Element {
     let mut puzzles = use_signal(|| PuzzlesExisting::new());
     let mut message = use_signal(|| None::<String>);
     let mut title = use_signal(|| None::<String>);
+    let mut is_fullscreen = use_signal(|| false);
     trace!("variables inited");
 
     use_future(move || async move {
@@ -74,6 +75,12 @@ pub fn App() -> Element {
 
         dioxus::Ok(())
     });
+
+    let toggle_fullscreen = move |_| {
+        trace!("fullscreen toggle called");
+        let fullscreen_current = *is_fullscreen.read();
+        is_fullscreen.set(!fullscreen_current);
+    };
 
     // Handle join/submit button click
     // TODO this is very ugly function thing make it better
@@ -176,97 +183,94 @@ pub fn App() -> Element {
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
-        div { class: "container",
-            // TODO get from envpoint
-            // h1 { class: "mb-4 font-bold text-lg", "EVENT TITLE PLACEHOLDER" }
-            h1 { class: "mb-4 font-bold text-lg",
-                if let Some(t) = &*title.read() {
-                    "{t}",
-                } else {
-                    "Betöltés..."
+        div { class: if *is_fullscreen.read() { "table-only" } else { "normal" },
+            div { class: "others-container",
+                h1 { class: "mb-4 font-bold text-lg",
+                    if let Some(t) = &*title.read() {
+                        "{t}",
+                    } else {
+                        "Betöltés..."
+                    }
                 }
-            }
 
-            // Input section
-            div { class: "input-section",
-                if !*joined.read() {
-                    // Join form
-                    input { class: INPUT,
-                        r#type: "text",
-                        placeholder: "Username",
-                        value: "{username}",
-                        oninput: move |evt| username.set(evt.value())
-                    }
-
-                    if *show_password_prompt.read() {
-                        input { class: "ml-4 {INPUT}",
-                            r#type: "password",
-                            placeholder: "Admin Password",
-                            value: "{password}",
-                            oninput: move |evt| password.set(evt.value())
+                // Input section
+                div { class: "input-section",
+                    if !*joined.read() {
+                        // Join form
+                        input { class: INPUT,
+                            r#type: "text",
+                            placeholder: "Username",
+                            value: "{username}",
+                            oninput: move |evt| username.set(evt.value())
                         }
-                    }
 
-                    button { class: BUTTON, onclick: handle_action, "Join" }
-                } else {
-                    // Submit form
-                    input { class: INPUT,
-                        r#type: "text",
-                        placeholder: "Puzzle ID",
-                        value: "{puzzle_id}",
-                        oninput: move |evt| puzzle_id.set(evt.value())
-                    }
+                        if *show_password_prompt.read() {
+                            input { class: "ml-4 {INPUT}",
+                                r#type: "password",
+                                placeholder: "Admin Password",
+                                value: "{password}",
+                                oninput: move |evt| password.set(evt.value())
+                            }
+                        }
 
-                    input { class: "ml-4 {INPUT}",
-                        r#type: "text",
-                        placeholder: "Solution",
-                        value: "{puzzle_solution}",
-                        oninput: move |evt| puzzle_solution.set(evt.value())
-                    }
+                        button { class: BUTTON, onclick: handle_action, "Join" }
+                    } else {
+                        // Submit form
+                        input { class: INPUT,
+                            r#type: "text",
+                            placeholder: "Puzzle ID",
+                            value: "{puzzle_id}",
+                            oninput: move |evt| puzzle_id.set(evt.value())
+                        }
 
-                    if *is_admin.read() {
                         input { class: "ml-4 {INPUT}",
                             r#type: "text",
-                            placeholder: "Puzlle Value",
-                            value: "{puzzle_value}",
-                            oninput: move |evt| puzzle_value.set(evt.value())
+                            placeholder: "Solution",
+                            value: "{puzzle_solution}",
+                            oninput: move |evt| puzzle_solution.set(evt.value())
                         }
-                    }
 
-                    if *is_admin.read() {
-                        input { class: "ml-4 {INPUT}",
-                            r#type: "password",
-                            placeholder: "Admin Password",
-                            value: "{password}",
-                            oninput: move |evt| password.set(evt.value())
+                        if *is_admin.read() {
+                            input { class: "ml-4 {INPUT}",
+                                r#type: "text",
+                                placeholder: "Puzlle Value",
+                                value: "{puzzle_value}",
+                                oninput: move |evt| puzzle_value.set(evt.value())
+                            }
                         }
-                    }
 
-                    button { class: BUTTON, onclick: handle_action, "Send" }
+                        if *is_admin.read() {
+                            input { class: "ml-4 {INPUT}",
+                                r#type: "password",
+                                placeholder: "Admin Password",
+                                value: "{password}",
+                                oninput: move |evt| password.set(evt.value())
+                            }
+                        }
+
+                        button { class: BUTTON, onclick: handle_action, "Send" }
+                    }
+                }
+
+                // Message popup
+                if let Some(msg) = &*message.read() {
+                    div {
+                        class: "popup",
+                        "{msg}"
+                    }
                 }
             }
-
-            // Message display
-            // if !message.read().is_empty() {
-            //     div { class: "message", "{message}" }
-            // }
-            if let Some(msg) = &*message.read() {
-                div {
-                    class: "popup",
-                    "{msg}"
-                }
-            }
-
             // Teams and puzzles table
             div { class: "table-container",
                 table { class: "mt-5",
+                    onclick: toggle_fullscreen,
                     thead {
                         tr {
                             th { class: "text-left pl-2", "." }
                             for (id, value) in puzzles.read().iter() {
                                 th {
                                     Tooltip {
-                                        TooltipTrigger { "Puzzle {id}" }
+                                        TooltipTrigger { class: "text-(--light)", "Puzzle {id}" }
                                         TooltipContent {
                                             side: ContentSide::Top,
                                             align: ContentAlign::Center,
@@ -282,9 +286,9 @@ pub fn App() -> Element {
                     tbody {
                         for (team_name, solved) in teams_state.read().iter() {
                             tr {
-                                td { class: "text-left pl-2 bg-(--dark2)", "{team_name}" }
+                                td { class: "text-left pl-2 text-(--light) bg-(--dark2)", "{team_name}" }
                                 for (puzzle_id, _puzzle) in puzzles.read().iter() {
-                                    td { class: "bg-(--dark) text-center",
+                                    td { class: "text-(--light) bg-(--dark) text-center text-[30px] font-[900]",
                                         if solved.contains(puzzle_id) {
                                             "X"
                                         } else {
