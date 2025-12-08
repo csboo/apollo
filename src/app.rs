@@ -1,3 +1,4 @@
+use dioxus::fullstack::serde;
 use dioxus::prelude::*;
 use dioxus_primitives::{ContentAlign, ContentSide};
 
@@ -11,12 +12,44 @@ const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const BUTTON: &str = "ml-4 w-30 px-3 py-2 rounded-lg border border-(--dark2) bg-(--middle) text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
 const INPUT: &str = "w-50 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+const CSV_INPUT: &str = "w-70 px-3 py-2 rounded-lg border border-gray-300 bg-gray-100 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
 
 // TODO could be handeled in much better ways
 async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
     // use std::env;
     let admin_username = "jani";
     Ok(username == admin_username)
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(crate = "dioxus::fullstack::serde")]
+struct PuzzleCsvRow {
+    id: String,
+    solution: String,
+    value: u32,
+}
+
+use csv::ReaderBuilder;
+fn parse_puzzle_csv(csv_text: &str) -> PuzzleSolutions {
+    let mut rdr = ReaderBuilder::new()
+        .has_headers(true)
+        .from_reader(csv_text.as_bytes());
+
+    let mut puzzles = PuzzleSolutions::new();
+
+    for result in rdr.deserialize::<PuzzleCsvRow>() {
+        let row = result.expect("invalid csv row");
+
+        puzzles.insert(
+            row.id,
+            Puzzle {
+                solution: row.solution,
+                value: row.value,
+            },
+        );
+    }
+
+    puzzles
 }
 
 #[component]
@@ -37,6 +70,7 @@ pub fn App() -> Element {
     let mut message = use_signal(|| None::<String>);
     let mut title = use_signal(|| None::<String>);
     let mut is_fullscreen = use_signal(|| false);
+    let mut parsed_puzzles = use_signal(|| PuzzleSolutions::new());
     trace!("variables inited");
 
     use_future(move || async move {
@@ -75,6 +109,19 @@ pub fn App() -> Element {
 
         dioxus::Ok(())
     });
+
+    let handle_csv = move |evt: Event<FormData>| async move {
+        let text = evt
+            .files()
+            .iter()
+            .next()
+            .unwrap()
+            .read_string()
+            .await
+            .unwrap();
+
+        parsed_puzzles.set(parse_puzzle_csv(&text));
+    };
 
     let toggle_fullscreen = move |_| {
         trace!("fullscreen toggle called");
@@ -130,15 +177,19 @@ pub fn App() -> Element {
             //     &value_current.is_empty()
             // );
             if admin {
-                let value_current_num = value_current.parse::<u32>().unwrap();
                 match crate::backend::endpoints::set_solution(
-                    PuzzleSolutions::from([(
-                        puzzle_current,
-                        Puzzle {
-                            value: value_current_num,
-                            solution: solution_current,
-                        },
-                    )]),
+                    if parsed_puzzles.read().is_empty() {
+                        let value_current_num = value_current.parse::<u32>().unwrap();
+                        PuzzleSolutions::from([(
+                            puzzle_current,
+                            Puzzle {
+                                value: value_current_num,
+                                solution: solution_current,
+                            },
+                        )])
+                    } else {
+                        parsed_puzzles.read().clone()
+                    },
                     password_current,
                 )
                 .await
@@ -243,6 +294,12 @@ pub fn App() -> Element {
                                 placeholder: "Admin jelszó",
                                 value: "{password}",
                                 oninput: move |evt| password.set(evt.value())
+                            }
+
+                            input { class: "ml-4 {CSV_INPUT}",
+                                r#type: "file",
+                                r#accept: ".csv",
+                                onchange: handle_csv,
                             }
 
                             button { class: BUTTON, onclick: handle_action, "Beállítás" }
