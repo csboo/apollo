@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use dioxus_primitives::{ContentAlign, ContentSide};
 
 mod actions;
 mod models;
@@ -8,7 +7,7 @@ mod utils;
 use crate::{
     app::{models::AuthState, utils::parse_puzzle_csv},
     backend::models::{PuzzleSolutions, PuzzlesExisting, TeamsState},
-    components::tooltip::*,
+    components::score_table::ScoreTable,
 };
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -33,6 +32,7 @@ pub fn App() -> Element {
         is_admin: false,
         show_password_prompt: false,
     });
+    let auth_current = auth.read();
     let mut teams_state = use_signal(|| TeamsState::new());
     let mut puzzles = use_signal(|| PuzzlesExisting::new());
     let mut message = use_signal(|| None::<String>);
@@ -71,7 +71,6 @@ pub fn App() -> Element {
     use_effect(move || {
         if message.read().is_some() {
             // hide after 5 seconds
-            // let message = message.clone();
             spawn(async move {
                 gloo_timers::future::sleep(std::time::Duration::from_secs(5)).await;
                 message.set(None);
@@ -144,20 +143,20 @@ pub fn App() -> Element {
 
                 // Input section
                 div { class: "input-section",
-                    if !auth.read().joined {
+                    if !auth_current.joined {
                         // Join form
                         input { class: INPUT,
                             r#type: "text",
                             placeholder: "Csapatnév",
-                            value: "{auth.read().username}",
+                            value: "{auth_current.username}",
                             oninput: move |evt| auth.write().username = evt.value()
                         }
 
-                        if auth.read().show_password_prompt {
+                        if auth_current.show_password_prompt {
                             input { class: "ml-4 {INPUT}",
                                 r#type: "password",
                                 placeholder: "Admin jelszó",
-                                value: "{auth.read().password}",
+                                value: "{auth_current.password}",
                                 oninput: move |evt| auth.write().password = evt.value()
                             }
                         }
@@ -179,7 +178,7 @@ pub fn App() -> Element {
                             oninput: move |evt| puzzle_solution.set(evt.value())
                         }
 
-                        if auth.read().is_admin {
+                        if auth_current.is_admin {
                             input { class: "ml-4 {INPUT}",
                                 r#type: "text",
                                 placeholder: "Érték/Nyeremény",
@@ -190,7 +189,7 @@ pub fn App() -> Element {
                             input { class: "ml-4 {INPUT}",
                                 r#type: "password",
                                 placeholder: "Admin jelszó",
-                                value: "{auth.read().password}",
+                                value: "{auth_current.password}",
                                 oninput: move |evt| auth.write().password = evt.value()
                             }
 
@@ -217,44 +216,12 @@ pub fn App() -> Element {
                 }
             }
             // Teams and puzzles table
+
             div { class: "table-container",
-                table { class: "mt-5",
-                    onclick: toggle_fullscreen,
-                    thead {
-                        tr {
-                            th { class: "text-left pl-2", "." }
-                            for (id, value) in puzzles.read().iter() {
-                                th {
-                                    Tooltip {
-                                        TooltipTrigger { class: "text-(--light)", "Puzzle {id}" }
-                                        TooltipContent {
-                                            side: ContentSide::Top,
-                                            align: ContentAlign::Center,
-                                            div { class: "p-2 border border-(--dark2) rounded-md bg-(--dark)",
-                                                "value: {value}"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    tbody {
-                        for (team_name, solved) in teams_state.read().iter() {
-                            tr {
-                                td { class: "text-left pl-2 text-(--light) bg-(--dark2)", "{team_name}" }
-                                for (puzzle_id, _puzzle) in puzzles.read().iter() {
-                                    td { class: "text-(--light) bg-(--dark) text-center text-[30px] font-[900]",
-                                        if solved.contains(puzzle_id) {
-                                            "X"
-                                        } else {
-                                            ""
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                ScoreTable {
+                    puzzles: puzzles,
+                    teams_state: teams_state,
+                    toggle_fullscreen: toggle_fullscreen,
                 }
             }
         }
