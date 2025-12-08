@@ -1,8 +1,8 @@
-#[cfg(feature = "server")]
-use super::logic::*;
 use super::models::*;
 use dioxus::fullstack::{CborEncoding, Streaming};
 use dioxus::prelude::*;
+#[cfg(feature = "server")]
+use {super::logic::*, secrecy::ExposeSecret};
 
 #[get("/api/event_title")]
 pub async fn event_title() -> Result<String> {
@@ -22,10 +22,15 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), C
 /// join the competition as a contestant team
 #[post("/api/join")]
 pub async fn join(username: String) -> Result<String, HttpError> {
-    _ = backup_state().await;
-    let teams = &mut TEAMS.write().unwrap();
-    (!teams.contains_key(&username)).or_forbidden("taken username")?;
-    _ = teams.insert(username, SolvedPuzzles::new());
+    (!TEAMS.read().await.contains_key(&username)).or_forbidden("taken username")?;
+
+    let mut teams_lock = TEAMS.write().await;
+    _ = teams_lock.insert(username, SolvedPuzzles::new());
+    drop(teams_lock);
+
+    #[cfg(feature = "server_state_save")]
+    state_save::save_state().await?;
+
     Ok(String::from("helo, mehet!"))
 }
 
@@ -35,17 +40,23 @@ pub async fn set_solution(
     puzzle_solutions: PuzzleSolutions,
     password: String,
 ) -> Result<String, HttpError> {
-    _ = backup_state().await;
     // submitting as admin
-    (*ADMIN_PASSWORD == password).or_unauthorized("incorrect password for APOLLO_MESTER")?;
+    (*ADMIN_PASSWORD.expose_secret() == password)
+        .or_unauthorized("incorrect password for APOLLO_MESTER")?;
 
-    let puzzles_state = &mut PUZZLES.write().unwrap();
+    let puzzles_lock = PUZZLES.read().await;
     puzzle_solutions
         .keys()
-        .any(|new_k| !puzzles_state.contains_key(new_k))
+        .any(|new_k| !puzzles_lock.contains_key(new_k))
         .or_forbidden("one of the puzzles already set")?;
+    drop(puzzles_lock);
 
-    puzzles_state.extend(puzzle_solutions);
+    let mut puzzles_lock = PUZZLES.write().await;
+    puzzles_lock.extend(puzzle_solutions);
+    drop(puzzles_lock);
+
+    #[cfg(feature = "server_state_save")]
+    state_save::save_state().await?;
 
     Ok(String::from("beallitottam a megoldast"))
 }
@@ -57,22 +68,34 @@ pub async fn submit_solution(
     puzzle_id: PuzzleId,
     solution: PuzzleSolution,
 ) -> Result<String, HttpError> {
-    _ = backup_state().await;
-    let teams = &mut TEAMS.write().unwrap();
-    let team_state = teams
-        .get_mut(&username)
+    TEAMS
+        .read()
+        .await
+        .contains_key(&username)
         .or_forbidden("no such team in the competition, join first")?;
 
-    let puzzles = &mut PUZZLES.read().unwrap();
     if solution
-        == *puzzles
+        == *PUZZLES
+            .read()
+            .await
             .get(&puzzle_id)
             .or_not_found("no such puzzle")?
             .solution
     {
-        team_state
+        let mut teams_lock = TEAMS.write().await;
+
+        let team_solved = teams_lock
+            .get_mut(&username)
+            .or_internal_server_error("shouldn't have got this far")?;
+
+        team_solved
             .insert(puzzle_id)
             .or_forbidden("already solved this puzzle")?;
+        drop(teams_lock);
+
+        #[cfg(feature = "server_state_save")]
+        state_save::save_state().await?;
+
         Ok(String::from("oke, megoldottad, elmentettem!"))
     } else {
         HttpError::forbidden("incorrect solution")?

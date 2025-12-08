@@ -7,7 +7,7 @@ fn main() {
 
     #[cfg(feature = "server")]
     dioxus::serve(|| async move {
-        backend::ensure_admin_env_vars();
+        backend::prepare_startup().await;
 
         let router = dioxus::server::router(app::App);
         Ok(router)

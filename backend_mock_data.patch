@@ -3,8 +3,8 @@ index 6b5f509..2bf923e 100644
 --- a/src/backend/logic.rs
 +++ b/src/backend/logic.rs
 @@ -3,11 +3,53 @@ use dioxus::prelude::*;
- use std::sync::{LazyLock, RwLock};
  use std::{env, process};
+ use tokio::sync::RwLock;
  
 -pub(super) static PUZZLES: LazyLock<RwLock<PuzzleSolutions>> =
 -    LazyLock::new(|| RwLock::new(PuzzleSolutions::new()));
@@ -57,6 +57,6 @@ index 6b5f509..2bf923e 100644
 +        ("genyo".to_string(), SolvedPuzzles::from(["".to_string()])),
 +    ]))
 +});
- 
- /// without `name`, the app won't run
+
+ /// without `key`, the app won't run
  fn ensure_env_var(key: &str) -> String {
