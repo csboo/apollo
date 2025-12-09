@@ -9,7 +9,7 @@ use crate::{
         models::{AuthState, Message},
         utils::parse_puzzle_csv,
     },
-    backend::models::{PuzzleSolutions, PuzzlesExisting, TeamsState},
+    backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
     components::score_table::ScoreTable,
 };
 
@@ -36,8 +36,8 @@ pub fn App() -> Element {
         show_password_prompt: false,
     });
     let auth_current = auth.read();
-    let mut teams_state = use_signal(|| TeamsState::new());
-    let mut puzzles = use_signal(|| PuzzlesExisting::new());
+    let mut teams_state = use_signal(|| Vec::<(PuzzleId, SolvedPuzzles)>::new());
+    let mut puzzles = use_signal(|| Vec::<(PuzzleId, PuzzleValue)>::new());
     let mut message = use_signal(|| None::<(Message, String)>);
     let mut title = use_signal(|| None::<String>);
     let mut is_fullscreen = use_signal(|| false);
@@ -63,10 +63,17 @@ pub fn App() -> Element {
         trace!("got stream");
 
         // Then poll it for new events
-        while let Some(Ok(data)) = stream.next().await {
+        while let Some(Ok((new_team_state, new_puzzles))) = stream.next().await {
             trace!("got new data");
-            teams_state.set(data.0);
-            puzzles.set(data.1);
+            let mut temp_p: Vec<(PuzzleId, PuzzleValue)> = new_puzzles.into_iter().collect();
+            temp_p.sort();
+            let mut temp_t: Vec<(PuzzleId, SolvedPuzzles)> = new_team_state.into_iter().collect();
+            temp_t.sort_by(|a, b| {
+                b.1.len().cmp(&a.1.len()).then_with(|| a.0.cmp(&b.0)) // solved size, abc order if equal
+            });
+
+            puzzles.set(temp_p);
+            teams_state.set(temp_t);
             trace!("set new data");
         }
 

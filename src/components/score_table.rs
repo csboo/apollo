@@ -2,14 +2,14 @@ use dioxus::prelude::*;
 use dioxus_primitives::{ContentAlign, ContentSide};
 
 use crate::{
-    backend::models::{PuzzlesExisting, TeamsState},
+    backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles},
     components::tooltip::*,
 };
 
 #[component]
 pub fn ScoreTable(
-    puzzles: Signal<PuzzlesExisting>,
-    teams_state: Signal<TeamsState>,
+    puzzles: Signal<Vec<(PuzzleId, PuzzleValue)>>,
+    teams_state: Signal<Vec<(PuzzleId, SolvedPuzzles)>>,
     toggle_fullscreen: EventHandler<MouseEvent>,
 ) -> Element {
     rsx! {
