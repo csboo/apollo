@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 use dioxus::prelude::*;
+// use dioxus_primitives::select::*;
 
 mod actions;
 mod models;
@@ -13,7 +14,7 @@ use crate::{
         utils::{parse_puzzle_csv, popup_error},
     },
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
-    components::score_table::ScoreTable,
+    components::{score_table::ScoreTable, select::*},
 };
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -134,6 +135,17 @@ pub fn App() -> Element {
         }
     };
 
+    let teams_len = puzzles.read().len();
+    let teamss = puzzles.clone().read().clone();
+    let puzlez = teamss.iter().enumerate().map(|(i, (team_name, _))| {
+        rsx! {
+            SelectOption::<String> { index: i, value: team_name.clone(), text_value: "{team_name}",
+                {format!("{team_name}")}
+                SelectItemIndicator {}
+            }
+        }
+    });
+
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
@@ -176,11 +188,26 @@ pub fn App() -> Element {
                             button { class: BUTTON, onclick: handle_action, "Belépés" }
                         } else {
                             // Submit form
-                            input { class: INPUT,
-                                r#type: "text",
-                                placeholder: "Puzzle ID",
-                                value: "{puzzle_id}",
-                                oninput: move |evt| puzzle_id.set(evt.value())
+                            Select::<String> {
+                                placeholder: "Feladat kiválasztása",
+                                on_value_change: move |value: Option<String>| {
+                                    if let Some(value) = value {
+                                        puzzle_id.set(value);
+                                    }
+                                },
+                                SelectTrigger { aria_label: "Select Trigger",
+                                    class: "px-3 py-2 rounded-md border \
+                                                bg-neutral-900 text-neutral-100 \
+                                                border-neutral-700 \
+                                                hover:border-neutral-500 \
+                                                focus:outline-none focus:ring-2 focus:ring-blue-500/50",
+                                    width: "12rem", SelectValue {} }
+                                SelectList { aria_label: "Select Demo",
+                                    SelectGroup {
+                                        SelectGroupLabel { "Feladatok" }
+                                        {puzlez}
+                                    }
+                                }
                             }
 
                             input { class: "ml-4 {INPUT}",
