@@ -50,7 +50,9 @@ pub fn App() -> Element {
             crate::backend::endpoints::event_title()
                 .await
                 .inspect_err(|e| message.set(Some((Message::MsgErr, format!("Error: {}", e)))))
-                .ok(),
+                .ok()
+                .unwrap_or("Apollo esemény".to_string())
+                .into(),
         );
     });
 
