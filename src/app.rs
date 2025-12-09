@@ -150,90 +150,93 @@ pub fn App() -> Element {
                         "{t}",
                     }
                 } else {
-                    h1 { class: "mb-4 font-bold text-md",
-                        "Betöltés..."
+                    div { class: "loading",
+                        h1 { class: "font-bold text-[clamp(1rem,4vw,2.5rem)]",
+                            "Várakozás az Apollo kiszolgálóra"
+                        }
                     }
                 }
-
+                if title.read().as_ref().is_some_and(|t| !t.is_empty()) {
                 // Input section
-                div { class: "input-section",
-                    if !auth_current.joined {
-                        // Join form
-                        input { class: INPUT,
-                            r#type: "text",
-                            placeholder: "Csapatnév",
-                            value: "{auth_current.username}",
-                            oninput: move |evt| auth.write().username = evt.value()
-                        }
-
-                        if auth_current.show_password_prompt {
-                            input { class: "ml-4 {INPUT}",
-                                r#type: "password",
-                                placeholder: "Admin jelszó",
-                                value: "{auth_current.password}",
-                                oninput: move |evt| auth.write().password = evt.value()
+                    div { class: "input-section",
+                        if !auth_current.joined {
+                            // Join form
+                            input { class: INPUT,
+                                r#type: "text",
+                                placeholder: "Csapatnév",
+                                value: "{auth_current.username}",
+                                oninput: move |evt| auth.write().username = evt.value()
                             }
-                        }
 
-                        button { class: BUTTON, onclick: handle_action, "Belépés" }
-                    } else {
-                        // Submit form
-                        input { class: INPUT,
-                            r#type: "text",
-                            placeholder: "Puzzle ID",
-                            value: "{puzzle_id}",
-                            oninput: move |evt| puzzle_id.set(evt.value())
-                        }
+                            if auth_current.show_password_prompt {
+                                input { class: "ml-4 {INPUT}",
+                                    r#type: "password",
+                                    placeholder: "Admin jelszó",
+                                    value: "{auth_current.password}",
+                                    oninput: move |evt| auth.write().password = evt.value()
+                                }
+                            }
 
-                        input { class: "ml-4 {INPUT}",
-                            r#type: "text",
-                            placeholder: "Megoldás",
-                            value: "{puzzle_solution}",
-                            oninput: move |evt| puzzle_solution.set(evt.value())
-                        }
+                            button { class: BUTTON, onclick: handle_action, "Belépés" }
+                        } else {
+                            // Submit form
+                            input { class: INPUT,
+                                r#type: "text",
+                                placeholder: "Puzzle ID",
+                                value: "{puzzle_id}",
+                                oninput: move |evt| puzzle_id.set(evt.value())
+                            }
 
-                        if auth_current.is_admin {
                             input { class: "ml-4 {INPUT}",
                                 r#type: "text",
-                                placeholder: "Érték/Nyeremény",
-                                value: "{puzzle_value}",
-                                oninput: move |evt| puzzle_value.set(evt.value())
+                                placeholder: "Megoldás",
+                                value: "{puzzle_solution}",
+                                oninput: move |evt| puzzle_solution.set(evt.value())
                             }
 
-                            input { class: "ml-4 {INPUT}",
-                                r#type: "password",
-                                placeholder: "Admin jelszó",
-                                value: "{auth_current.password}",
-                                oninput: move |evt| auth.write().password = evt.value()
+                            if auth_current.is_admin {
+                                input { class: "ml-4 {INPUT}",
+                                    r#type: "text",
+                                    placeholder: "Érték/Nyeremény",
+                                    value: "{puzzle_value}",
+                                    oninput: move |evt| puzzle_value.set(evt.value())
+                                }
+
+                                input { class: "ml-4 {INPUT}",
+                                    r#type: "password",
+                                    placeholder: "Admin jelszó",
+                                    value: "{auth_current.password}",
+                                    oninput: move |evt| auth.write().password = evt.value()
+                                }
+
+                                input { class: "ml-4 {CSV_INPUT}",
+                                    r#type: "file",
+                                    r#accept: ".csv",
+                                    onchange: handle_csv,
+                                }
+
+                                button { class: BUTTON, onclick: handle_action, "Beállítás" }
+                            } else {
+                                button { class: BUTTON, onclick: handle_action, "Küldés" }
                             }
 
-                            input { class: "ml-4 {CSV_INPUT}",
-                                r#type: "file",
-                                r#accept: ".csv",
-                                onchange: handle_csv,
-                            }
-
-                            button { class: BUTTON, onclick: handle_action, "Beállítás" }
-                        } else {
-                            button { class: BUTTON, onclick: handle_action, "Küldés" }
                         }
-
                     }
-                }
 
-                // Message popup
-                if let Some(m) = &*message.read() {
-                    div {
-                        class: "popup",
-                        id: match m.0 {
-                            Message::MsgNorm => {
-                                "msgnorm"
+                    // Message popup
+                    if let Some(m) = &*message.read() {
+                        div {
+                            class: "popup",
+                            id: match m.0 {
+                                Message::MsgNorm => {
+                                    "msgnorm"
+                                },
+                                Message::MsgErr => {
+                                    "msgerr"
+                                },
                             },
-                            Message::MsgErr => {
-                                "msgerr"
-                            },
-                        },
-                        "{m.1}"
+                            "{m.1}"
+                        }
                     }
                 }
             }
