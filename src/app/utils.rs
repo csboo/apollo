@@ -27,3 +27,17 @@ pub fn parse_puzzle_csv(csv_text: &str) -> PuzzleSolutions {
 
     puzzles
 }
+
+pub fn popup_error(
+    signal_message: &mut Signal<Option<(Message, String)>>,
+    text: impl std::fmt::Display,
+) {
+    signal_message.set(Some((Message::MsgErr, text.to_string())));
+}
+
+pub fn popup_normal(
+    signal_message: &mut Signal<Option<(Message, String)>>,
+    text: impl std::fmt::Display,
+) {
+    signal_message.set(Some((Message::MsgNorm, text.to_string())));
+}

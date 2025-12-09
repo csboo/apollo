@@ -1,7 +1,10 @@
 use dioxus::{prelude::*, signals::Signal};
 
 use crate::{
-    app::models::{AuthState, Message},
+    app::{
+        models::{AuthState, Message},
+        utils::{popup_error, popup_normal},
+    },
     backend::models::{Puzzle, PuzzleSolutions},
 };
 
@@ -38,13 +41,13 @@ pub async fn handle_join(
 
     match crate::backend::endpoints::join(username_current.clone()).await {
         Ok(msg) => {
-            message.set(Some((Message::MsgNorm, msg.clone())));
+            popup_normal(message, msg);
             auth.write().joined = true;
             auth.write().password = String::new();
             auth.write().show_password_prompt = false;
         }
         Err(e) => {
-            message.set(Some((Message::MsgErr, format!("Error: {}", e))));
+            popup_error(message, format!("Hiba: {}", e));
         }
     }
 }
@@ -65,12 +68,12 @@ pub async fn handle_user_submit(
     .await
     {
         Ok(msg) => {
-            message.set(Some((Message::MsgNorm, msg)));
+            popup_normal(message, msg);
             puzzle_id.set(String::new());
             puzzle_solution.set(String::new());
         }
         Err(e) => {
-            message.set(Some((Message::MsgErr, format!("Error: {}", e))));
+            popup_error(message, format!("Hiba: {}", e));
         }
     }
 }
@@ -105,14 +108,17 @@ pub async fn handle_admin_submit(
     .await
     {
         Ok(msg) => {
-            message.set(Some((Message::MsgNorm, msg)));
+            popup_normal(message, msg);
             puzzle_id.set(String::new());
             puzzle_solution.set(String::new());
             puzzle_value.set(String::new());
             // password.set(String::new()); NOTE should remember password?
         }
         Err(e) => {
-            message.set(Some((Message::MsgErr, format!("Error: {}", e))));
+            popup_error(
+                message,
+                format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
+            );
         }
     }
 }

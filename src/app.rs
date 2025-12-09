@@ -7,7 +7,7 @@ mod utils;
 use crate::{
     app::{
         models::{AuthState, Message},
-        utils::parse_puzzle_csv,
+        utils::{parse_puzzle_csv, popup_error},
     },
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
     components::score_table::ScoreTable,
@@ -49,7 +49,7 @@ pub fn App() -> Element {
         title.set(
             crate::backend::endpoints::event_title()
                 .await
-                .inspect_err(|e| message.set(Some((Message::MsgErr, format!("Error: {}", e)))))
+                .inspect_err(|e| popup_error(&mut message, format!("Hiba: {}", e)))
                 .ok()
                 .unwrap_or("Apollo esemény".to_string())
                 .into(),
