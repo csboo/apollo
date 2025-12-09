@@ -1,8 +1,13 @@
 use super::models::*;
-use dioxus::fullstack::{CborEncoding, Streaming};
+use dioxus::fullstack::{CborEncoding, SetCookie, SetHeader, Streaming};
 use dioxus::prelude::*;
+use uuid::Uuid;
 #[cfg(feature = "server")]
-use {super::logic::*, secrecy::ExposeSecret};
+use {
+    super::logic::*,
+    dioxus::fullstack::{Cookie, TypedHeader},
+    secrecy::ExposeSecret,
+};
 
 #[get("/api/event_title")]
 pub async fn event_title() -> Result<String> {
@@ -19,19 +24,39 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), C
     }))
 }
 
+/// returns username if valid
+#[get("/api/auth_state", cookies: TypedHeader<Cookie>)]
+pub async fn auth_state() -> Result<String, HttpError> {
+    let uuid = extract_session_id_cookie(cookies).await?;
+    let username = USER_IDS
+        .read()
+        .await
+        .get(&uuid)
+        .or_unauthorized("no such userid")?
+        .clone();
+    Ok(username)
+}
+
 /// join the competition as a contestant team
+///
+/// We'll return a `SetCookie` header if the login is successful.
+///
+/// This will set a cookie in the user's browser that can be used for subsequent authenticated requests.
 #[post("/api/join")]
-pub async fn join(username: String) -> Result<String, HttpError> {
+pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
     (!TEAMS.read().await.contains_key(&username)).or_forbidden("taken username")?;
 
     let mut teams_lock = TEAMS.write().await;
-    _ = teams_lock.insert(username, SolvedPuzzles::new());
+    _ = teams_lock.insert(username.clone(), SolvedPuzzles::new());
     drop(teams_lock);
+
+    let uuid = Uuid::new_v4();
+    _ = USER_IDS.write().await.insert(uuid, username);
 
     #[cfg(feature = "server_state_save")]
     state_save::save_state().await?;
 
-    Ok(String::from("helo, mehet!"))
+    SetHeader::new(format!("session_id={uuid};")).or_internal_server_error("invalid uuid cookie")
 }
 
 /// set `puzzle_id`'s a `solution` and `value` with `ADMIN_PASSWORD`
@@ -61,18 +86,20 @@ pub async fn set_solution(
     Ok(String::from("beallitottam a megoldast"))
 }
 
+/// We'll use the `TypedHeader` extractor on the server to get the cookie from the request.
 /// submit a solution as a team
-#[post("/api/submit")]
+#[post("/api/submit", cookies: TypedHeader<Cookie>)]
 pub async fn submit_solution(
-    username: String,
     puzzle_id: PuzzleId,
     solution: PuzzleSolution,
 ) -> Result<String, HttpError> {
-    TEAMS
+    let uuid = extract_session_id_cookie(cookies).await?;
+    let username = USER_IDS
         .read()
         .await
-        .contains_key(&username)
-        .or_forbidden("no such team in the competition, join first")?;
+        .get(&uuid)
+        .or_unauthorized("no such userid")?
+        .clone(); // perf: rather clone than lock
 
     if solution
         == *PUZZLES
