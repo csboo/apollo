@@ -145,10 +145,12 @@ pub fn App() -> Element {
 
         div { class: if *is_fullscreen.read() { "table-only" } else { "normal" },
             div { class: "others-container",
-                h1 { class: "mb-4 font-bold text-lg",
-                    if let Some(t) = &*title.read() {
+                if let Some(t) = &*title.read() {
+                    h1 { class: "mb-4 font-bold text-lg",
                         "{t}",
-                    } else {
+                    }
+                } else {
+                    h1 { class: "mb-4 font-bold text-md",
                         "Betöltés..."
                     }
                 }

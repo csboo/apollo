@@ -17,7 +17,9 @@ pub fn ScoreTable(
             onclick: toggle_fullscreen,
             thead {
                 tr {
-                    th { class: "text-left pl-2", "." }
+                    if !puzzles.read().is_empty() && !teams_state.read().is_empty() {
+                        th { class: "text-left pl-2", "." }
+                    }
                     for (id, value) in puzzles.read().iter() {
                         th {
                             Tooltip {
