@@ -22,16 +22,25 @@ pub fn ScoreTable(
                     }
                     for (id, value) in puzzles.read().iter() {
                         th {
-                            Tooltip {
-                                TooltipTrigger { class: "text-(--light)", "Puzzle {id}" }
-                                TooltipContent {
-                                    side: ContentSide::Top,
-                                    align: ContentAlign::Center,
-                                    div { class: "p-2 border border-(--dark2) rounded-md bg-(--dark)",
-                                        "value: {value}"
-                                    }
-                                }
+                            span { class: "text-md",
+                                "{id}"
                             }
+                            br {  }
+                            span { class: "text-sm",
+                                "({value} pont)"
+                            }
+
+                            // Tooltip {
+                            //     TooltipTrigger { class: "text-(--light)", "{id}" }
+
+                            //     TooltipContent {
+                            //         side: ContentSide::Top,
+                            //         align: ContentAlign::Center,
+                            //         div { class: "p-2 border border-(--dark2) rounded-md bg-(--dark)",
+                            //             "value: {value}"
+                            //         }
+                            //     }
+                            // }
                         }
                     }
                 }
