@@ -1,3 +1,6 @@
+#![deny(clippy::unwrap_used)]
+#![forbid(unsafe_code)]
+
 use dioxus::prelude::*;
 
 mod actions;
@@ -25,23 +28,17 @@ pub fn App() -> Element {
     trace!("kicking off app");
     // State management variables
     trace!("initing variables");
-    let mut puzzle_id = use_signal(|| String::new());
-    let mut puzzle_solution = use_signal(|| String::new());
-    let mut puzzle_value = use_signal(|| String::new());
-    let mut auth = use_signal(|| AuthState {
-        username: String::new(),
-        password: String::new(),
-        joined: false,
-        is_admin: false,
-        show_password_prompt: false,
-    });
+    let mut puzzle_id = use_signal(String::new);
+    let mut puzzle_solution = use_signal(String::new);
+    let mut puzzle_value = use_signal(String::new);
+    let mut auth = use_signal(AuthState::default);
     let auth_current = auth.read();
-    let mut teams_state = use_signal(|| Vec::<(PuzzleId, SolvedPuzzles)>::new());
-    let mut puzzles = use_signal(|| Vec::<(PuzzleId, PuzzleValue)>::new());
+    let mut teams_state = use_signal(Vec::<(PuzzleId, SolvedPuzzles)>::new);
+    let mut puzzles = use_signal(Vec::<(PuzzleId, PuzzleValue)>::new);
     let mut message = use_signal(|| None::<(Message, String)>);
     let mut title = use_signal(|| None::<String>);
     let mut is_fullscreen = use_signal(|| false);
-    let mut parsed_puzzles = use_signal(|| PuzzleSolutions::new());
+    let mut parsed_puzzles = use_signal(PuzzleSolutions::new);
     trace!("variables inited");
 
     // side effect handlers
@@ -92,16 +89,15 @@ pub fn App() -> Element {
 
     // action handlers
     let handle_csv = move |evt: Event<FormData>| async move {
-        let text = evt
-            .files()
-            .iter()
-            .next()
-            .unwrap()
-            .read_string()
-            .await
-            .unwrap();
-
-        parsed_puzzles.set(parse_puzzle_csv(&text));
+        if let Some(file) = evt.files().first() {
+            let Ok(text) = file.read_string().await else {
+                warn!("couldn't parse text from selected file");
+                return;
+            };
+            parsed_puzzles.set(parse_puzzle_csv(&text, &mut message));
+        } else {
+            warn!("couldn't read selected file");
+        };
     };
 
     let toggle_fullscreen = move |_| {

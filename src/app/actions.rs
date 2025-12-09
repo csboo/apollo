@@ -21,22 +21,20 @@ pub async fn handle_join(
     auth: &mut Signal<AuthState>,
     message: &mut Signal<Option<(Message, String)>>,
 ) {
-    if let Ok(is_admin_user) = check_admin_username(username_current.clone()).await {
-        if is_admin_user {
-            auth.write().is_admin = true;
-            auth.write().show_password_prompt = true;
+    if check_admin_username(username_current.clone())
+        .await
+        .is_ok_and(|x| x)
+    {
+        auth.write().is_admin = true;
+        auth.write().show_password_prompt = true;
 
-            // If password is empty, don't proceed yet
-            if password_current.is_empty() {
-                message.set(Some((
-                    Message::MsgNorm,
-                    "Adja meg az admin jelszót".to_string(),
-                )));
-                return;
-            }
-            auth.write().joined = true;
+        // If password is empty, don't proceed yet
+        if password_current.is_empty() {
+            popup_normal(message, "Adja meg az admin jelszót");
             return;
         }
+        auth.write().joined = true;
+        return;
     };
 
     match crate::backend::endpoints::join(username_current.clone()).await {
@@ -89,14 +87,17 @@ pub async fn handle_admin_submit(
     // Submit solution - call backend function directly
     let puzzle_current = puzzle_id.read().clone();
     let solution_current = puzzle_solution.read().clone();
-    let value_current = puzzle_value.read().clone();
+    let Ok(value_current) = puzzle_value.read().parse() else {
+        popup_error(message, "Az érték csak szám lehet");
+        return;
+    };
+
     match crate::backend::endpoints::set_solution(
         if parsed_puzzles.read().is_empty() {
-            let value_current_num = value_current.parse::<u32>().unwrap(); // TODO WARN unwrap
             PuzzleSolutions::from([(
                 puzzle_current,
                 Puzzle {
-                    value: value_current_num,
+                    value: value_current,
                     solution: solution_current,
                 },
             )])
