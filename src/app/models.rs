@@ -5,3 +5,8 @@ pub struct AuthState {
     pub(crate) is_admin: bool,
     pub(crate) show_password_prompt: bool,
 }
+
+pub enum Message {
+    MsgNorm,
+    MsgErr,
+}

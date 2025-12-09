@@ -5,7 +5,10 @@ mod models;
 mod utils;
 
 use crate::{
-    app::{models::AuthState, utils::parse_puzzle_csv},
+    app::{
+        models::{AuthState, Message},
+        utils::parse_puzzle_csv,
+    },
     backend::models::{PuzzleSolutions, PuzzlesExisting, TeamsState},
     components::score_table::ScoreTable,
 };
@@ -35,7 +38,7 @@ pub fn App() -> Element {
     let auth_current = auth.read();
     let mut teams_state = use_signal(|| TeamsState::new());
     let mut puzzles = use_signal(|| PuzzlesExisting::new());
-    let mut message = use_signal(|| None::<String>);
+    let mut message = use_signal(|| None::<(Message, String)>);
     let mut title = use_signal(|| None::<String>);
     let mut is_fullscreen = use_signal(|| false);
     let mut parsed_puzzles = use_signal(|| PuzzleSolutions::new());
@@ -46,7 +49,7 @@ pub fn App() -> Element {
         title.set(
             crate::backend::endpoints::event_title()
                 .await
-                .inspect_err(|e| message.set(Some(format!("Error: {}", e))))
+                .inspect_err(|e| message.set(Some((Message::MsgErr, format!("Error: {}", e)))))
                 .ok(),
         );
     });
@@ -208,10 +211,18 @@ pub fn App() -> Element {
                 }
 
                 // Message popup
-                if let Some(msg) = &*message.read() {
+                if let Some(m) = &*message.read() {
                     div {
                         class: "popup",
-                        "{msg}"
+                        id: match m.0 {
+                            Message::MsgNorm => {
+                                "msgnorm"
+                            },
+                            Message::MsgErr => {
+                                "msgerr"
+                            },
+                        },
+                        "{m.1}"
                     }
                 }
             }

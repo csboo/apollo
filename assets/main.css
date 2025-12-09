@@ -14,6 +14,14 @@
     height: 80vh;
 }
 
+#msgerr.popup {
+    border: solid 2px darkred;
+}
+
+#msgnorm.popup {
+    border: solid 2px steelblue;
+}
+
 .popup {
     width: auto;
     height: auto;
