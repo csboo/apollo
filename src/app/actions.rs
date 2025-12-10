@@ -16,20 +16,16 @@ async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
 }
 
 pub async fn handle_join(
-    username_current: String,
-    password_current: String,
     auth: &mut Signal<AuthState>,
     message: &mut Signal<Option<(Message, String)>>,
 ) {
-    if check_admin_username(username_current.clone())
-        .await
-        .is_ok_and(|x| x)
-    {
+    let u = auth.read().username.clone();
+    if check_admin_username(u.clone()).await.is_ok_and(|x| x) {
         auth.write().is_admin = true;
         auth.write().show_password_prompt = true;
 
         // If password is empty, don't proceed yet
-        if password_current.is_empty() {
+        if auth.read().password.is_empty() {
             popup_normal(message, "Adja meg az admin jelszót");
             return;
         }
@@ -37,15 +33,18 @@ pub async fn handle_join(
         return;
     };
 
-    match crate::backend::endpoints::join(username_current.clone()).await {
-        Ok(msg) => {
-            popup_normal(message, msg);
+    match crate::backend::endpoints::join(u.clone()).await {
+        Ok(_) => {
+            popup_normal(message, format!("Üdv, {}", u));
             auth.write().joined = true;
             auth.write().password = String::new();
             auth.write().show_password_prompt = false;
         }
         Err(e) => {
-            popup_error(message, format!("Hiba: {}", e));
+            popup_error(
+                message,
+                format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
+            );
         }
     }
 }
@@ -53,18 +52,11 @@ pub async fn handle_join(
 pub async fn handle_user_submit(
     puzzle_id: &mut Signal<String>,
     puzzle_solution: &mut Signal<String>,
-    username_current: String,
     message: &mut Signal<Option<(Message, String)>>,
 ) {
     let puzzle_current = puzzle_id.read().clone();
     let solution_current = puzzle_solution.read().clone();
-    match crate::backend::endpoints::submit_solution(
-        username_current,
-        puzzle_current,
-        solution_current,
-    )
-    .await
-    {
+    match crate::backend::endpoints::submit_solution(puzzle_current, solution_current).await {
         Ok(msg) => {
             popup_normal(message, msg);
             puzzle_id.set(String::new());
@@ -85,20 +77,17 @@ pub async fn handle_admin_submit(
     message: &mut Signal<Option<(Message, String)>>,
 ) {
     // Submit solution - call backend function directly
-    let puzzle_current = puzzle_id.read().clone();
-    let solution_current = puzzle_solution.read().clone();
-    let Ok(value_current) = puzzle_value.read().parse() else {
-        popup_error(message, "Az érték csak szám lehet");
-        return;
-    };
-
     match crate::backend::endpoints::set_solution(
         if parsed_puzzles.read().is_empty() {
+            let Ok(value_current) = puzzle_value.read().parse() else {
+                popup_error(message, "Az érték csak szám lehet");
+                return;
+            };
             PuzzleSolutions::from([(
-                puzzle_current,
+                puzzle_id.read().clone(),
                 Puzzle {
                     value: value_current,
-                    solution: solution_current,
+                    solution: puzzle_solution.read().clone(),
                 },
             )])
         } else {

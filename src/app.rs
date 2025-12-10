@@ -11,7 +11,7 @@ mod utils;
 use crate::{
     app::{
         models::{AuthState, Message},
-        utils::{parse_puzzle_csv, popup_error},
+        utils::{parse_puzzle_csv, popup_error, popup_normal},
     },
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
     components::{score_table::ScoreTable, select::*},
@@ -52,6 +52,14 @@ pub fn App() -> Element {
                 .unwrap_or("Apollo esemény".to_string())
                 .into(),
         );
+    });
+
+    use_future(move || async move {
+        if let Ok(name) = crate::backend::endpoints::auth_state().await {
+            auth.write().username = name.clone();
+            auth.write().joined = true;
+            popup_normal(&mut message, format!("Üdv újra, {name}"));
+        }
     });
 
     use_future(move || async move {
@@ -109,33 +117,28 @@ pub fn App() -> Element {
 
     let handle_action = move |_| async move {
         trace!("action handler called");
-        let username_current = auth.read().username.clone();
-        let password_current = auth.read().password.clone();
-
         if !auth.read().joined {
-            actions::handle_join(username_current, password_current, &mut auth, &mut message).await;
+            actions::handle_join(&mut auth, &mut message).await;
+            if auth.read().joined {
+                teams_state
+                    .write()
+                    .push((auth.read().username.clone(), SolvedPuzzles::new()));
+            }
         } else if auth.read().is_admin {
             actions::handle_admin_submit(
                 &mut puzzle_id,
                 &mut puzzle_value,
                 &mut puzzle_solution,
                 &parsed_puzzles,
-                password_current,
+                auth.read().password.clone(),
                 &mut message,
             )
             .await;
         } else {
-            actions::handle_user_submit(
-                &mut puzzle_id,
-                &mut puzzle_solution,
-                username_current,
-                &mut message,
-            )
-            .await;
+            actions::handle_user_submit(&mut puzzle_id, &mut puzzle_solution, &mut message).await;
         }
     };
 
-    let teams_len = puzzles.read().len();
     let teamss = puzzles.clone().read().clone();
     let puzlez = teamss.iter().enumerate().map(|(i, (team_name, _))| {
         rsx! {
