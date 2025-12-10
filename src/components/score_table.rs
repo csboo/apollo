@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
-use dioxus_primitives::{ContentAlign, ContentSide};
+// use dioxus_primitives::{ContentAlign, ContentSide};
 
 use crate::{
     backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles},
-    components::tooltip::*,
+    // components::tooltip::*,
 };
 
 #[component]
@@ -13,7 +13,7 @@ pub fn ScoreTable(
     toggle_fullscreen: EventHandler<MouseEvent>,
 ) -> Element {
     rsx! {
-        table { class: "mt-5",
+        table { class: "",
             onclick: toggle_fullscreen,
             thead {
                 tr {

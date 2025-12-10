@@ -14,7 +14,7 @@ use crate::{
         utils::{parse_puzzle_csv, popup_error, popup_normal},
     },
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
-    components::{score_table::ScoreTable, select::*},
+    components::{score_table::ScoreTable, select::*, team_status::TeamStatus},
 };
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -34,7 +34,7 @@ pub fn App() -> Element {
     let mut puzzle_value = use_signal(String::new);
     let mut auth = use_signal(AuthState::default);
     let auth_current = auth.read();
-    let mut teams_state = use_signal(Vec::<(PuzzleId, SolvedPuzzles)>::new);
+    let mut teams_state = use_signal(Vec::<(String, SolvedPuzzles)>::new);
     let mut puzzles = use_signal(Vec::<(PuzzleId, PuzzleValue)>::new);
     let mut message = use_signal(|| None::<(Message, String)>);
     let mut title = use_signal(|| None::<String>);
@@ -104,6 +104,7 @@ pub fn App() -> Element {
                 return;
             };
             parsed_puzzles.set(parse_puzzle_csv(&text, &mut message));
+            debug!("set puzzles from csv");
         } else {
             warn!("couldn't read selected file");
         };
@@ -139,15 +140,42 @@ pub fn App() -> Element {
         }
     };
 
-    let teamss = puzzles.clone().read().clone();
-    let puzlez = teamss.iter().enumerate().map(|(i, (team_name, _))| {
-        rsx! {
-            SelectOption::<String> { index: i, value: team_name.clone(), text_value: "{team_name}",
-                {format!("{team_name}")}
-                SelectItemIndicator {}
-            }
-        }
+    let teams = teams_state.read();
+    let ref_puzzles = puzzles.read();
+
+    let solved = teams
+        .iter()
+        .find(|(team, _)| team == &auth_current.username)
+        .map(|(_, solved)| solved);
+
+    let puzzle_dropdown_options = solved.into_iter().flat_map(|solved| {
+        ref_puzzles
+            .iter()
+            .filter(|(id, _)| !solved.contains(id))
+            .enumerate()
+            .map(|(i, (id, _))| {
+                rsx! {
+                    SelectOption::<String> {
+                        index: i,
+                        value: id.clone(),
+                        text_value: "{id}",
+                        {format!("{id}")}
+                        SelectItemIndicator {}
+                    }
+                }
+            })
     });
+
+    let points: u32 = solved
+        .as_ref()
+        .map(|solved| {
+            ref_puzzles
+                .iter()
+                .filter(|(id, _)| solved.contains(id))
+                .map(|(_, value)| *value)
+                .sum()
+        })
+        .unwrap_or(0);
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
@@ -208,7 +236,7 @@ pub fn App() -> Element {
                                 SelectList { aria_label: "Select Demo",
                                     SelectGroup {
                                         SelectGroupLabel { "Feladatok" }
-                                        {puzlez}
+                                        {puzzle_dropdown_options}
                                     }
                                 }
                             }
@@ -249,6 +277,13 @@ pub fn App() -> Element {
                         }
                     }
 
+                    div { class: "mt-5",
+                        TeamStatus {
+                            team: auth_current.username.clone(),
+                            points: points,
+                        }
+                    }
+
                     // Message popup
                     if let Some(m) = &*message.read() {
                         div {
@@ -268,7 +303,7 @@ pub fn App() -> Element {
             }
             // Teams and puzzles table
 
-            div { class: "table-container",
+            div { class: "table-container mt-5",
                 ScoreTable {
                     puzzles: puzzles,
                     teams_state: teams_state,

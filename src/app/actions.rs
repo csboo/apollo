@@ -79,6 +79,7 @@ pub async fn handle_admin_submit(
     // Submit solution - call backend function directly
     match crate::backend::endpoints::set_solution(
         if parsed_puzzles.read().is_empty() {
+            debug!("parsed puzzles is empty, trying from manual values");
             let Ok(value_current) = puzzle_value.read().parse() else {
                 popup_error(message, "Az érték csak szám lehet");
                 return;
