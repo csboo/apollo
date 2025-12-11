@@ -179,8 +179,8 @@ pub(super) mod state_save {
     }
 
     async fn load_state_of<D: for<'de> serde::Deserialize<'de>, P: AsRef<Path>>(path: P) -> Res<D> {
-        let encypted_data = decrypt_state(path).await?;
-        let state = ciborium::from_reader(encypted_data.as_slice())?;
+        let encrypted_data = decrypt_state(path).await?;
+        let state = ciborium::from_reader(encrypted_data.as_slice())?;
         Ok(state)
     }
 

@@ -46,9 +46,10 @@ pub async fn auth_state() -> Result<String, HttpError> {
 pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
     (!TEAMS.read().await.contains_key(&username)).or_forbidden("taken username")?;
 
-    let mut teams_lock = TEAMS.write().await;
-    _ = teams_lock.insert(username.clone(), SolvedPuzzles::new());
-    drop(teams_lock);
+    _ = TEAMS
+        .write()
+        .await
+        .insert(username.clone(), SolvedPuzzles::new());
 
     let uuid = Uuid::new_v4();
     _ = USER_IDS.write().await.insert(uuid, username);
@@ -79,9 +80,7 @@ pub async fn set_solution(
         .or_forbidden("one of the puzzles already set")?;
     drop(puzzles_lock);
 
-    let mut puzzles_lock = PUZZLES.write().await;
-    puzzles_lock.extend(puzzle_solutions);
-    drop(puzzles_lock);
+    PUZZLES.write().await.extend(puzzle_solutions);
 
     #[cfg(feature = "server_state_save")]
     state_save::save_state().await?;
