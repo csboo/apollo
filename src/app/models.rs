@@ -7,6 +7,7 @@ pub struct AuthState {
     pub(crate) show_password_prompt: bool,
 }
 
+#[derive(Clone, PartialEq)]
 pub enum Message {
     MsgNorm,
     MsgErr,

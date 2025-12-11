@@ -8,13 +8,17 @@ mod actions;
 mod models;
 mod utils;
 
+pub use crate::app::models::Message;
+
 use crate::{
     app::{
-        models::{AuthState, Message},
+        models::AuthState,
         utils::{parse_puzzle_csv, popup_error, popup_normal},
     },
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
-    components::{score_table::ScoreTable, select::*, team_status::TeamStatus},
+    components::{
+        message_popup::MessagePopup, score_table::ScoreTable, select::*, team_status::TeamStatus,
+    },
 };
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -158,8 +162,8 @@ pub fn App() -> Element {
                     SelectOption::<String> {
                         index: i,
                         value: id.clone(),
-                        text_value: "{id}",
-                        {format!("{id}")}
+                        text_value: "{id}. feladat",
+                        {format!("{id}. feladat")}
                         SelectItemIndicator {}
                     }
                 }
@@ -195,8 +199,20 @@ pub fn App() -> Element {
                         }
                     }
                 }
+
+            } // div: other-container
+
+            div { class: "table-container mt-5",
+                ScoreTable {
+                    puzzles: puzzles,
+                    teams_state: teams_state,
+                    toggle_fullscreen: toggle_fullscreen,
+                }
+            } // div: table-container
+
+            div { class: "others-container mt-5",
                 if title.read().as_ref().is_some_and(|t| !t.is_empty()) {
-                // Input section
+                    // Input section
                     div { class: "input-section",
                         if !auth_current.joined {
                             // Join form
@@ -219,97 +235,82 @@ pub fn App() -> Element {
                             button { class: BUTTON, onclick: handle_action, "Belépés" }
                         } else {
                             // Submit form
-                            Select::<String> {
-                                placeholder: "Feladat kiválasztása",
-                                on_value_change: move |value: Option<String>| {
-                                    if let Some(value) = value {
-                                        puzzle_id.set(value);
+                            div { class: "input-flexy-boxy flex flex-row h-[50px]",
+                                Select::<String> {
+                                    placeholder: "Feladat kiválasztása",
+                                    on_value_change: move |value: Option<String>| {
+                                        if let Some(value) = value {
+                                            puzzle_id.set(value);
+                                        }
+                                    },
+                                    SelectTrigger {
+                                        aria_label: "Select Trigger",
+                                        width: "12rem",
+                                        SelectValue {}
                                     }
-                                },
-                                SelectTrigger { aria_label: "Select Trigger",
-                                    class: "px-3 py-2 rounded-md border \
-                                                bg-neutral-900 text-neutral-100 \
-                                                border-neutral-700 \
-                                                hover:border-neutral-500 \
-                                                focus:outline-none focus:ring-2 focus:ring-blue-500/50",
-                                    width: "12rem", SelectValue {} }
-                                SelectList { aria_label: "Select Demo",
-                                    SelectGroup {
-                                        SelectGroupLabel { "Feladatok" }
-                                        {puzzle_dropdown_options}
+                                    SelectList {
+                                        aria_label: "Select Demo",
+                                        SelectGroup {
+                                            {puzzle_dropdown_options}
+                                        }
                                     }
-                                }
-                            }
-
-                            input { class: "ml-4 {INPUT}",
-                                r#type: "text",
-                                placeholder: "Megoldás",
-                                value: "{puzzle_solution}",
-                                oninput: move |evt| puzzle_solution.set(evt.value())
-                            }
-
-                            if auth_current.is_admin {
-                                input { class: "ml-4 {INPUT}",
-                                    r#type: "text",
-                                    placeholder: "Érték/Nyeremény",
-                                    value: "{puzzle_value}",
-                                    oninput: move |evt| puzzle_value.set(evt.value())
                                 }
 
                                 input { class: "ml-4 {INPUT}",
-                                    r#type: "password",
-                                    placeholder: "Admin jelszó",
-                                    value: "{auth_current.password}",
-                                    oninput: move |evt| auth.write().password = evt.value()
+                                    r#type: "text",
+                                    placeholder: "Megoldás",
+                                    value: "{puzzle_solution}",
+                                    oninput: move |evt| puzzle_solution.set(evt.value())
                                 }
 
-                                input { class: "ml-4 {CSV_INPUT}",
-                                    r#type: "file",
-                                    r#accept: ".csv",
-                                    onchange: handle_csv,
-                                }
+                                if auth_current.is_admin {
+                                    input { class: "ml-4 {INPUT}",
+                                        r#type: "text",
+                                        placeholder: "Érték/Nyeremény",
+                                        value: "{puzzle_value}",
+                                        oninput: move |evt| puzzle_value.set(evt.value())
+                                    }
 
-                                button { class: BUTTON, onclick: handle_action, "Beállítás" }
-                            } else {
-                                button { class: BUTTON, onclick: handle_action, "Küldés" }
+                                    input { class: "ml-4 {INPUT}",
+                                        r#type: "password",
+                                        placeholder: "Admin jelszó",
+                                        value: "{auth_current.password}",
+                                        oninput: move |evt| auth.write().password = evt.value()
+                                    }
+
+                                    input { class: "ml-4 {CSV_INPUT}",
+                                        r#type: "file",
+                                        r#accept: ".csv",
+                                        onchange: handle_csv,
+                                    }
+
+                                    button { class: BUTTON, onclick: handle_action, "Beállítás" }
+                                } else {
+                                    button { class: BUTTON, onclick: handle_action, "Küldés" }
+                                }
                             }
 
                         }
-                    }
+                    } // div: input-section
 
-                    div { class: "mt-5",
-                        TeamStatus {
-                            team: auth_current.username.clone(),
-                            points: points,
+                    if auth_current.joined {
+                        div { class: "mt-5",
+                            TeamStatus {
+                                team: auth_current.username.clone(),
+                                points: points,
+                            }
                         }
                     }
 
                     // Message popup
                     if let Some(m) = &*message.read() {
-                        div {
-                            class: "popup",
-                            id: match m.0 {
-                                Message::MsgNorm => {
-                                    "msgnorm"
-                                },
-                                Message::MsgErr => {
-                                    "msgerr"
-                                },
-                            },
-                            "{m.1}"
+                        MessagePopup {
+                            level: m.0.clone(),
+                            text: m.1.clone(),
                         }
-                    }
+                    } // end message
                 }
-            }
-            // Teams and puzzles table
-
-            div { class: "table-container mt-5",
-                ScoreTable {
-                    puzzles: puzzles,
-                    teams_state: teams_state,
-                    toggle_fullscreen: toggle_fullscreen,
-                }
-            }
-        }
+            } // div: other-container
+        } // end main div
     }
 }
