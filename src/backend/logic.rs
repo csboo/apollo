@@ -7,6 +7,24 @@ use std::{collections::HashMap, env, process};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+/// lock `state` for writing
+macro_rules! wlock {
+    ($state:ident) => {
+        $state.write().await
+    };
+}
+
+/// lock `state` for reading
+/// optionally also get(`key`)
+macro_rules! rlock {
+    ($state:ident[$key:expr]) => {
+        rlock!($state).get($key)
+    };
+    ($state:ident) => {
+        $state.read().await
+    };
+}
+
 /// who's joined -> their name
 type Teams = HashMap<uuid::Uuid, String>;
 pub(super) static USER_IDS: LazyLock<RwLock<Teams>> = LazyLock::new(|| RwLock::new(Teams::new()));
@@ -49,14 +67,12 @@ pub(super) static EVENT_TITLE: LazyLock<Result<String, env::VarError>> =
 
 /// get a clone of state: `TEAMS` and `PUZZLES`
 pub(super) async fn get_game_state() -> (TeamsState, PuzzlesExisting) {
-    let existing_puzzles = PUZZLES
-        .read()
-        .await
+    let existing_puzzles = rlock!(PUZZLES)
         .clone()
         .into_iter()
         .map(|(id, pzl)| (id, pzl.value))
         .collect();
-    (TEAMS.read().await.clone(), existing_puzzles)
+    (rlock!(TEAMS).clone(), existing_puzzles)
 }
 
 /// extract session id cookie from cookie headers
@@ -160,9 +176,9 @@ pub(super) mod state_save {
     pub async fn save_state() -> Result<(), HttpError> {
         // internal server error
         let ise = |msg: String| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, msg);
-        let teams_state = TEAMS.read().await.clone();
-        let puzzles_state = PUZZLES.read().await.clone();
-        let userid_state = USER_IDS.read().await.clone();
+        let teams_state = rlock!(TEAMS).clone();
+        let puzzles_state = rlock!(PUZZLES).clone();
+        let userid_state = rlock!(USER_IDS).clone();
         let disk_state: StateOnDisk = (teams_state, puzzles_state, userid_state);
 
         let mut state_buf = vec![];
@@ -191,9 +207,9 @@ pub(super) mod state_save {
         }
         let (teams_state, puzzles_state, userid_state): StateOnDisk =
             load_state_of(&*STATE_PATH).await?;
-        PUZZLES.write().await.extend(puzzles_state);
-        TEAMS.write().await.extend(teams_state);
-        USER_IDS.write().await.extend(userid_state);
+        wlock!(PUZZLES).extend(puzzles_state);
+        wlock!(TEAMS).extend(teams_state);
+        wlock!(USER_IDS).extend(userid_state);
         info!("successfully loaded saved state from {STATE_PATH:?} to memory");
         Ok(())
     }
