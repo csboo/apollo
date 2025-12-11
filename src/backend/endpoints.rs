@@ -39,17 +39,35 @@ pub async fn auth_state() -> Result<String, HttpError> {
 
 /// join the competition as a contestant team
 ///
+/// - got `sid` cookie
+///   - valid => forbidden
+///   - invalid => goto #no-sid-cookie
+/// - no `sid` cookie
+///   - `username`'s session is taken => forbidden
+///   - otherwise => allowed, preserve progress if any
+///
 /// We'll return a `SetCookie` header if the login is successful.
 ///
 /// This will set a cookie in the user's browser that can be used for subsequent authenticated requests.
-#[post("/api/join")]
+#[post("/api/join", cookies: TypedHeader<Cookie>)]
 pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
-    (!TEAMS.read().await.contains_key(&username)).or_forbidden("taken username")?;
+    if let Ok(sent_uuid) = extract_sid_cookie(cookies).await
+        && USER_IDS.read().await.contains_key(&sent_uuid)
+    {
+        return HttpError::forbidden("already logged in");
+    }
 
-    _ = TEAMS
-        .write()
-        .await
-        .insert(username.clone(), SolvedPuzzles::new());
+    // whether someone's currently logged in to this account: `USER_IDS` contains `username`
+    (!USER_IDS.read().await.values().any(|u| u == &username)).or_forbidden("taken session")?;
+
+    // brand new team
+    if !TEAMS.read().await.contains_key(&username) {
+        _ = TEAMS
+            .write()
+            .await
+            .insert(username.clone(), SolvedPuzzles::new());
+    }
+    // allowed to log in, but don't reset progress
 
     let uuid = Uuid::new_v4();
     _ = USER_IDS.write().await.insert(uuid, username);
@@ -59,6 +77,20 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
 
     SetHeader::new(format!("sid={uuid};HttpOnly;Secure;SameSite=Strict"))
         .or_internal_server_error("invalid sid cookie")
+}
+
+/// log out of the competition, but preserve progress of the team for future relogins
+///
+/// returns empty, expired `sid` `SetCookie` header => browser deletes the valid one => user's now deauthed
+#[get("/api/logout", cookies: TypedHeader<Cookie>)]
+pub async fn logout() -> Result<SetHeader<SetCookie>, HttpError> {
+    let uuid = extract_sid_cookie(cookies)
+        .await
+        .or_bad_request("not logged in, not logging out")?;
+    _ = USER_IDS.write().await.remove(&uuid);
+    // this makes the client invalidate the actual sid cookie
+    SetHeader::new("sid=;Expires=Thu, 01 Jan 1970 00:00:00 GMT")
+        .or_internal_server_error("invalid deauth sid cookie")
 }
 
 /// set `puzzle_solutions` with `ADMIN_PASSWORD`
