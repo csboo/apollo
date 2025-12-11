@@ -8,6 +8,7 @@ use {
     secrecy::ExposeSecret,
     uuid::Uuid,
 };
+
 #[get("/api/event_title")]
 pub async fn event_title() -> Result<String> {
     Ok(EVENT_TITLE.clone()?)
@@ -27,7 +28,10 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), C
 #[get("/api/auth_state", cookies: TypedHeader<Cookie>)]
 pub async fn auth_state() -> Result<String, HttpError> {
     let uuid = extract_sid_cookie(cookies).await?;
-    let username = rlock!(USER_IDS[&uuid])
+    let username = USER_IDS
+        .read()
+        .await
+        .get(&uuid)
         .or_unauthorized("no such userid")?
         .clone();
     Ok(username)
@@ -40,14 +44,15 @@ pub async fn auth_state() -> Result<String, HttpError> {
 /// This will set a cookie in the user's browser that can be used for subsequent authenticated requests.
 #[post("/api/join")]
 pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
-    rlock!(TEAMS[&username])
-        .is_none()
-        .or_forbidden("taken username")?;
+    (!TEAMS.read().await.contains_key(&username)).or_forbidden("taken username")?;
 
-    _ = wlock!(TEAMS).insert(username.clone(), SolvedPuzzles::new());
+    _ = TEAMS
+        .write()
+        .await
+        .insert(username.clone(), SolvedPuzzles::new());
 
     let uuid = Uuid::new_v4();
-    _ = wlock!(USER_IDS).insert(uuid, username);
+    _ = USER_IDS.write().await.insert(uuid, username);
 
     #[cfg(feature = "server_state_save")]
     state_save::save_state().await?;
@@ -68,14 +73,14 @@ pub async fn set_solution(
     (*ADMIN_PASSWORD.expose_secret() == password)
         .or_unauthorized("incorrect password for APOLLO_MESTER")?;
 
-    let puzzles_lock = rlock!(PUZZLES);
+    let puzzles_lock = PUZZLES.read().await;
     puzzle_solutions
         .keys()
         .any(|new_k| !puzzles_lock.contains_key(new_k))
         .or_forbidden("one of the puzzles already set")?;
     drop(puzzles_lock);
 
-    wlock!(PUZZLES).extend(puzzle_solutions);
+    PUZZLES.write().await.extend(puzzle_solutions);
 
     #[cfg(feature = "server_state_save")]
     state_save::save_state().await?;
@@ -92,17 +97,23 @@ pub async fn submit_solution(
     solution: PuzzleSolution,
 ) -> Result<String, HttpError> {
     let uuid = extract_sid_cookie(cookies).await?;
-    let username = rlock!(USER_IDS[&uuid])
+    let username = USER_IDS
+        .read()
+        .await
+        .get(&uuid)
         .or_unauthorized("no such userid")?
         .clone(); // PERF: rather clone than lock
 
-    rlock!(PUZZLES[&puzzle_id])
+    PUZZLES
+        .read()
+        .await
+        .get(&puzzle_id)
         .or_not_found("no such puzzle")?
         .solution
         .eq(&solution)
         .or_forbidden("incorrect solution")?;
 
-    let mut teams_lock = wlock!(TEAMS);
+    let mut teams_lock = TEAMS.write().await;
 
     let team_solved = teams_lock
         .get_mut(&username)
