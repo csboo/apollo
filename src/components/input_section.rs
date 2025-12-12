@@ -52,7 +52,7 @@ pub fn InputSection(
             }
         }
 
-        button { class: BUTTON, onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles, teams_state), "Belépés" }
+        button { class: BUTTON, onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Belépés" }
     } else {
         // Submit form
         div { class: "input-flexy-boxy flex flex-row h-[50px]",
@@ -107,9 +107,9 @@ pub fn InputSection(
                     onchange: actions::handle_csv(parsed_puzzles.clone(), message.clone()),
                 }
 
-                button { class: BUTTON, onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles, teams_state), "Beállítás" }
+                button { class: BUTTON, onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Beállítás" }
             } else {
-                button { class: BUTTON, onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles, teams_state), "Küldés" }
+                button { class: BUTTON, onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Küldés" }
             }
         }
 

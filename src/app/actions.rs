@@ -148,18 +148,12 @@ pub fn handle_action(
     puzzle_value: Signal<String>,
     puzzle_solution: Signal<String>,
     parsed_puzzles: Signal<PuzzleSolutions>,
-    mut teams_state: Signal<Vec<(String, SolvedPuzzles)>>,
 ) -> impl FnMut(Event<MouseData>) + 'static {
     move |_| {
         spawn(async move {
             trace!("action handler called");
             if !auth.read().joined {
                 self::handle_join(auth, message).await;
-                if auth.read().joined {
-                    teams_state
-                        .write()
-                        .push((auth.read().username.clone(), SolvedPuzzles::new()));
-                }
             } else if auth.read().is_admin {
                 self::handle_admin_submit(
                     puzzle_id,
