@@ -1,0 +1,129 @@
+use dioxus::prelude::*;
+
+use crate::{
+    app::{AuthState, Message, actions},
+    backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
+    components::select::*,
+};
+
+const BUTTON: &str = "ml-4 w-30 px-3 py-2 rounded-lg border border-(--dark2) bg-(--middle) text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+const INPUT: &str = "w-50 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+const CSV_INPUT: &str = "w-70 px-3 py-2 rounded-lg border border-gray-300 bg-gray-100 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+
+#[component]
+pub fn InputSection(
+    auth_current: AuthState,
+    auth: Signal<AuthState>,
+    message: Signal<Option<(Message, String)>>,
+    puzzle_id: Signal<String>,
+    puzzle_value: Signal<String>,
+    puzzle_solution: Signal<String>,
+    parsed_puzzles: Signal<PuzzleSolutions>,
+    mut teams_state: Signal<Vec<(String, SolvedPuzzles)>>,
+    puzzles: Signal<Vec<(PuzzleId, PuzzleValue)>>,
+) -> Element {
+    let teams = teams_state.read();
+    let ref_puzzles = puzzles.read();
+
+    let solved = teams
+        .iter()
+        .find(|(team, _)| team == &auth_current.username)
+        .map(|(_, solved)| solved);
+
+    let puzzle_dropdown_options = solved.into_iter().flat_map(|solved| {
+        ref_puzzles
+            .iter()
+            .filter(|(id, _)| !solved.contains(id))
+            .enumerate()
+            .map(|(i, (id, _))| {
+                rsx! {
+                    SelectOption::<String> {
+                        index: i,
+                        value: id.clone(),
+                        text_value: "{id}. feladat",
+                        {format!("{id}. feladat")}
+                        SelectItemIndicator {}
+                    }
+                }
+            })
+    });
+
+    rsx!(
+        if !auth_current.joined {
+        // Join form
+        input { class: INPUT,
+            r#type: "text",
+            placeholder: "Csapatnév",
+            value: "{auth_current.username}",
+            oninput: move |evt| auth.write().username = evt.value()
+        }
+
+        if auth_current.show_password_prompt {
+            input { class: "ml-4 {INPUT}",
+                r#type: "password",
+                placeholder: "Admin jelszó",
+                value: "{auth_current.password}",
+                oninput: move |evt| auth.write().password = evt.value()
+            }
+        }
+
+        button { class: BUTTON, onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles, teams_state), "Belépés" }
+    } else {
+        // Submit form
+        div { class: "input-flexy-boxy flex flex-row h-[50px]",
+            Select::<String> {
+                placeholder: "Feladat kiválasztása",
+                on_value_change: move |value: Option<String>| {
+                    if let Some(value) = value {
+                        puzzle_id.set(value);
+                    }
+                },
+                SelectTrigger {
+                    aria_label: "Select Trigger",
+                    width: "12rem",
+                    SelectValue {}
+                }
+                SelectList {
+                    aria_label: "Select Demo",
+                    SelectGroup {
+                        {puzzle_dropdown_options}
+                    }
+                }
+            }
+
+            input { class: "ml-4 {INPUT}",
+                r#type: "text",
+                placeholder: "Megoldás",
+                value: "{puzzle_solution}",
+                oninput: move |evt| puzzle_solution.set(evt.value())
+            }
+
+            if auth_current.is_admin {
+                input { class: "ml-4 {INPUT}",
+                    r#type: "text",
+                    placeholder: "Érték/Nyeremény",
+                    value: "{puzzle_value}",
+                    oninput: move |evt| puzzle_value.set(evt.value())
+                }
+
+                input { class: "ml-4 {INPUT}",
+                    r#type: "password",
+                    placeholder: "Admin jelszó",
+                    value: "{auth_current.password}",
+                    oninput: move |evt| auth.write().password = evt.value()
+                }
+
+                input { class: "ml-4 {CSV_INPUT}",
+                    r#type: "file",
+                    r#accept: ".csv",
+                    onchange: actions::handle_csv(parsed_puzzles.clone(), message.clone()),
+                }
+
+                button { class: BUTTON, onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles, teams_state), "Beállítás" }
+            } else {
+                button { class: BUTTON, onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles, teams_state), "Küldés" }
+            }
+        }
+
+    })
+}

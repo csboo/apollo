@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Default, Clone, PartialEq)]
 pub struct AuthState {
     pub(crate) username: String,
     pub(crate) password: String,

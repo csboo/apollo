@@ -3,9 +3,9 @@ use dioxus::{prelude::*, signals::Signal};
 use crate::{
     app::{
         models::{AuthState, Message},
-        utils::{popup_error, popup_normal},
+        utils::{parse_puzzle_csv, popup_error, popup_normal},
     },
-    backend::models::{Puzzle, PuzzleSolutions},
+    backend::models::{Puzzle, PuzzleSolutions, SolvedPuzzles},
 };
 
 // TODO could be handeled in much better ways
@@ -15,10 +15,7 @@ async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
     Ok(username == admin_username)
 }
 
-pub async fn handle_join(
-    auth: &mut Signal<AuthState>,
-    message: &mut Signal<Option<(Message, String)>>,
-) {
+pub async fn handle_join(mut auth: Signal<AuthState>, message: Signal<Option<(Message, String)>>) {
     let u = auth.read().username.clone();
     if check_admin_username(u.clone()).await.is_ok_and(|x| x) {
         auth.write().is_admin = true;
@@ -26,7 +23,7 @@ pub async fn handle_join(
 
         // If password is empty, don't proceed yet
         if auth.read().password.is_empty() {
-            popup_normal(message, "Adja meg az admin jelszót");
+            popup_normal(message.clone(), "Adja meg az admin jelszót");
             return;
         }
         auth.write().joined = true;
@@ -35,14 +32,14 @@ pub async fn handle_join(
 
     match crate::backend::endpoints::join(u.clone()).await {
         Ok(_) => {
-            popup_normal(message, format!("Üdv, {}", u));
+            popup_normal(message.clone(), format!("Üdv, {}", u));
             auth.write().joined = true;
             auth.write().password = String::new();
             auth.write().show_password_prompt = false;
         }
         Err(e) => {
             popup_error(
-                message,
+                message.clone(),
                 format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
             );
         }
@@ -50,38 +47,38 @@ pub async fn handle_join(
 }
 
 pub async fn handle_user_submit(
-    puzzle_id: &mut Signal<String>,
-    puzzle_solution: &mut Signal<String>,
-    message: &mut Signal<Option<(Message, String)>>,
+    mut puzzle_id: Signal<String>,
+    mut puzzle_solution: Signal<String>,
+    message: Signal<Option<(Message, String)>>,
 ) {
     let puzzle_current = puzzle_id.read().clone();
     let solution_current = puzzle_solution.read().clone();
     match crate::backend::endpoints::submit_solution(puzzle_current, solution_current).await {
         Ok(msg) => {
-            popup_normal(message, msg);
+            popup_normal(message.clone(), msg);
             puzzle_id.set(String::new());
             puzzle_solution.set(String::new());
         }
         Err(e) => {
-            popup_error(message, format!("Hiba: {}", e));
+            popup_error(message.clone(), format!("Hiba: {}", e));
         }
     }
 }
 
 pub async fn handle_admin_submit(
-    puzzle_id: &mut Signal<String>,
-    puzzle_value: &mut Signal<String>,
-    puzzle_solution: &mut Signal<String>,
-    parsed_puzzles: &Signal<PuzzleSolutions>,
+    mut puzzle_id: Signal<String>,
+    mut puzzle_value: Signal<String>,
+    mut puzzle_solution: Signal<String>,
+    parsed_puzzles: Signal<PuzzleSolutions>,
     password_current: String,
-    message: &mut Signal<Option<(Message, String)>>,
+    message: Signal<Option<(Message, String)>>,
 ) {
     // Submit solution - call backend function directly
     match crate::backend::endpoints::set_solution(
         if parsed_puzzles.read().is_empty() {
             debug!("parsed puzzles is empty, trying from manual values");
             let Ok(value_current) = puzzle_value.read().parse() else {
-                popup_error(message, "Az érték csak szám lehet");
+                popup_error(message.clone(), "Az érték csak szám lehet");
                 return;
             };
             PuzzleSolutions::from([(
@@ -99,7 +96,7 @@ pub async fn handle_admin_submit(
     .await
     {
         Ok(msg) => {
-            popup_normal(message, msg);
+            popup_normal(message.clone(), msg);
             puzzle_id.set(String::new());
             puzzle_solution.set(String::new());
             puzzle_value.set(String::new());
@@ -107,9 +104,75 @@ pub async fn handle_admin_submit(
         }
         Err(e) => {
             popup_error(
-                message,
+                message.clone(),
                 format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
             );
         }
+    }
+}
+
+pub fn handle_csv(
+    mut parsed_puzzles: Signal<PuzzleSolutions>,
+    message: Signal<Option<(Message, String)>>,
+) -> impl FnMut(Event<FormData>) + 'static {
+    move |form_data| {
+        spawn(async move {
+            if let Some(file) = form_data.files().first() {
+                let Ok(text) = file.read_string().await else {
+                    warn!("couldn't parse text from selected file");
+                    return;
+                };
+                parsed_puzzles.set(parse_puzzle_csv(&text, message.clone()));
+                debug!("set puzzles from csv");
+            } else {
+                warn!("couldn't read selected file");
+            };
+        });
+    }
+}
+
+pub fn toggle_fullscreen(
+    mut is_fullscreen: Signal<bool>,
+) -> impl FnMut(Event<MouseData>) + 'static {
+    move |_| {
+        trace!("fullscreen toggle called");
+        let fullscreen_current = *is_fullscreen.read();
+        is_fullscreen.set(!fullscreen_current);
+    }
+}
+
+pub fn handle_action(
+    auth: Signal<AuthState>,
+    message: Signal<Option<(Message, String)>>,
+    puzzle_id: Signal<String>,
+    puzzle_value: Signal<String>,
+    puzzle_solution: Signal<String>,
+    parsed_puzzles: Signal<PuzzleSolutions>,
+    mut teams_state: Signal<Vec<(String, SolvedPuzzles)>>,
+) -> impl FnMut(Event<MouseData>) + 'static {
+    move |_| {
+        spawn(async move {
+            trace!("action handler called");
+            if !auth.read().joined {
+                self::handle_join(auth, message).await;
+                if auth.read().joined {
+                    teams_state
+                        .write()
+                        .push((auth.read().username.clone(), SolvedPuzzles::new()));
+                }
+            } else if auth.read().is_admin {
+                self::handle_admin_submit(
+                    puzzle_id,
+                    puzzle_value,
+                    puzzle_solution,
+                    parsed_puzzles,
+                    auth.read().password.clone(),
+                    message,
+                )
+                .await;
+            } else {
+                self::handle_user_submit(puzzle_id, puzzle_solution, message).await;
+            }
+        });
     }
 }
