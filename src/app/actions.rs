@@ -17,29 +17,35 @@ async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
 
 pub async fn handle_join(mut auth: Signal<AuthState>, message: Signal<Option<(Message, String)>>) {
     let u = auth.read().username.clone();
+    if u.trim().is_empty() {
+        popup_error(message, "A csapatnév mező nem lehet üres");
+        return;
+    }
+
     if check_admin_username(u.clone()).await.is_ok_and(|x| x) {
         auth.write().is_admin = true;
         auth.write().show_password_prompt = true;
 
         // If password is empty, don't proceed yet
         if auth.read().password.is_empty() {
-            popup_normal(message.clone(), "Adja meg az admin jelszót");
+            popup_normal(message, "Adja meg az admin jelszót");
             return;
         }
         auth.write().joined = true;
         return;
     };
 
-    match crate::backend::endpoints::join(u.clone()).await {
-        Ok(_) => {
-            popup_normal(message.clone(), format!("Üdv, {}", u));
+    let _ok_none = crate::backend::endpoints::join(u.clone()).await;
+    match crate::backend::endpoints::auth_state().await {
+        Ok(uname) => {
+            popup_normal(message, format!("Üdv, {}", uname));
             auth.write().joined = true;
             auth.write().password = String::new();
             auth.write().show_password_prompt = false;
         }
         Err(e) => {
             popup_error(
-                message.clone(),
+                message,
                 format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
             );
         }
