@@ -1,17 +1,19 @@
 #![deny(clippy::unwrap_used)]
 #![forbid(unsafe_code)]
 
-use dioxus::{fullstack::Lazy, prelude::*};
-// use dioxus_primitives::select::*;
+use dioxus::prelude::*;
 
 pub mod actions;
 mod hooks;
 mod models;
 mod utils;
 
+const BUTTON: &str = "ml-4 w-30 px-3 py-2 rounded-lg border border-(--dark2) bg-(--middle) text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+
 pub use crate::app::models::{AuthState, Message};
 
 use crate::{
+    app::utils::{popup_error, popup_normal},
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
     components::{
         input_section::InputSection, message_popup::MessagePopup, score_table::ScoreTable,
@@ -31,8 +33,8 @@ pub fn App() -> Element {
     let puzzle_id = use_signal(String::new);
     let puzzle_solution = use_signal(String::new);
     let puzzle_value = use_signal(String::new);
-    let auth = use_signal(AuthState::default);
-    let auth_current = auth.read();
+    let mut auth = use_signal(AuthState::default);
+    let mut auth_current = auth.read();
     let teams_state = use_signal(Vec::<(String, SolvedPuzzles)>::new);
     let puzzles = use_signal(Vec::<(PuzzleId, PuzzleValue)>::new);
     let message = use_signal(|| None::<(Message, String)>);
@@ -42,7 +44,6 @@ pub fn App() -> Element {
     trace!("variables inited");
 
     // side effect handlers
-
     hooks::auto_hide_message(message);
     hooks::check_auth(auth, message);
     hooks::load_title(title, message);
@@ -118,6 +119,25 @@ pub fn App() -> Element {
                             TeamStatus {
                                 team: auth_current.username.clone(),
                                 points: points,
+                            }
+                        }
+                        div { class: "mt-5",
+                            button { class: "{BUTTON}",
+                                onclick: move |_| async move {
+                                    match crate::backend::endpoints::logout().await {
+                                        Ok(_) => {
+                                            popup_normal(message.clone(), format!("Viszlát, {}", auth.read().username));
+                                            auth.set(AuthState::default());
+                                        }
+                                        Err(e) => {
+                                            popup_error(
+                                                message.clone(),
+                                                format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
+                                            );
+                                        }
+                                    }
+                                },
+                                "Kijelentkezés"
                             }
                         }
                     }
