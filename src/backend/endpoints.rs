@@ -49,6 +49,8 @@ pub async fn auth_state() -> Result<String, HttpError> {
 /// We'll return a `SetCookie` header if the login is successful.
 ///
 /// This will set a cookie in the user's browser that can be used for subsequent authenticated requests.
+///
+/// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
 #[post("/api/join", cookies: TypedHeader<Cookie>)]
 pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
     if let Ok(sent_uuid) = extract_sid_cookie(cookies).await
@@ -73,7 +75,7 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
     _ = USER_IDS.write().await.insert(uuid, username);
 
     #[cfg(feature = "server_state_save")]
-    state_save::save_state().await?;
+    tokio::spawn(state_save::save_state());
 
     SetHeader::new(format!("sid={uuid};HttpOnly;Secure;SameSite=Strict"))
         .or_internal_server_error("invalid sid cookie")
@@ -82,12 +84,18 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
 /// log out of the competition, but preserve progress of the team for future relogins
 ///
 /// returns empty, expired `sid` `SetCookie` header => browser deletes the valid one => user's now deauthed
+///
+/// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
 #[get("/api/logout", cookies: TypedHeader<Cookie>)]
 pub async fn logout() -> Result<SetHeader<SetCookie>, HttpError> {
     let uuid = extract_sid_cookie(cookies)
         .await
         .or_bad_request("not logged in, not logging out")?;
     _ = USER_IDS.write().await.remove(&uuid);
+
+    #[cfg(feature = "server_state_save")]
+    tokio::spawn(state_save::save_state());
+
     // this makes the client invalidate the actual sid cookie
     SetHeader::new("sid=;Expires=Thu, 01 Jan 1970 00:00:00 GMT")
         .or_internal_server_error("invalid deauth sid cookie")
@@ -115,7 +123,7 @@ pub async fn set_solution(
     PUZZLES.write().await.extend(puzzle_solutions);
 
     #[cfg(feature = "server_state_save")]
-    state_save::save_state().await?;
+    tokio::spawn(state_save::save_state());
 
     Ok(String::from("beallitottam a megoldast"))
 }
@@ -157,7 +165,7 @@ pub async fn submit_solution(
     drop(teams_lock);
 
     #[cfg(feature = "server_state_save")]
-    state_save::save_state().await?;
+    tokio::spawn(state_save::save_state());
 
     Ok(String::from("oke, megoldottad, elmentettem!"))
 }
