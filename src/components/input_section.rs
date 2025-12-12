@@ -3,7 +3,6 @@ use dioxus::prelude::*;
 use crate::{
     app::{AuthState, Message, actions},
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
-    components::select::*,
 };
 
 const BUTTON: &str = "ml-4 w-30 px-3 py-2 rounded-lg border border-(--dark2) bg-(--middle) text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
@@ -30,23 +29,9 @@ pub fn InputSection(
         .find(|(team, _)| team == &auth_current.username)
         .map(|(_, solved)| solved);
 
-    let puzzle_dropdown_options = solved.into_iter().flat_map(|solved| {
-        ref_puzzles
-            .iter()
-            .filter(|(id, _)| !solved.contains(id))
-            .enumerate()
-            .map(|(i, (id, _))| {
-                rsx! {
-                    SelectOption::<String> {
-                        index: i,
-                        value: id.clone(),
-                        text_value: "{id}. feladat",
-                        {format!("{id}. feladat")}
-                        SelectItemIndicator {}
-                    }
-                }
-            })
-    });
+    let selectopts = solved
+        .into_iter()
+        .flat_map(|solved| ref_puzzles.iter().filter(|(id, _)| !solved.contains(id)));
 
     rsx!(
         if !auth_current.joined {
@@ -71,23 +56,26 @@ pub fn InputSection(
     } else {
         // Submit form
         div { class: "input-flexy-boxy flex flex-row h-[50px]",
-            Select::<String> {
-                placeholder: "Feladat kiválasztása",
-                on_value_change: move |value: Option<String>| {
-                    if let Some(value) = value {
-                        puzzle_id.set(value);
+            if !auth_current.is_admin {
+                select {
+                    class: "{INPUT}",
+                    onchange: move |evt: Event<FormData>| {
+                        debug!("{}", evt.value());
+                        puzzle_id.set(evt.value());
+                    },
+                    for (id, _) in selectopts {
+                        option {
+                            value: "{id}",
+                            "{id}. feladat"
+                        }
                     }
-                },
-                SelectTrigger {
-                    aria_label: "Select Trigger",
-                    width: "12rem",
-                    SelectValue {}
                 }
-                SelectList {
-                    aria_label: "Select Demo",
-                    SelectGroup {
-                        {puzzle_dropdown_options}
-                    }
+            } else {
+                input { class: "ml-4 {INPUT}",
+                    r#type: "text",
+                    placeholder: "Feladat",
+                    value: "{puzzle_id}",
+                    oninput: move |evt| puzzle_id.set(evt.value())
                 }
             }
 
