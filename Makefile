@@ -20,8 +20,8 @@ clean:
 	cargo clean
 
 help list:
-	@echo *serve*: build, run and reload on changes
-	@echo serve-no-state: build, run and reload on changes, don't save server state
-	@echo build: build in debug mode
-	@echo bundle: build in release mode
-	@echo clean: clean target
+	@echo "*serve*: build, run and reload on changes"
+	@echo "serve-no-state: build, run and reload on changes, don't save server state"
+	@echo "build: build in debug mode"
+	@echo "bundle: build in release mode"
+	@echo "clean: clean target"
