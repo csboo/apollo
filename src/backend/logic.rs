@@ -7,6 +7,7 @@ use std::{collections::HashMap, env, process};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+/// who's joined -> their name
 type Teams = HashMap<uuid::Uuid, String>;
 pub(super) static USER_IDS: LazyLock<RwLock<Teams>> = LazyLock::new(|| RwLock::new(Teams::new()));
 
@@ -46,6 +47,7 @@ pub(super) static ADMIN_PASSWORD: LazyLock<SecretString> =
 pub(super) static EVENT_TITLE: LazyLock<Result<String, env::VarError>> =
     LazyLock::new(|| env::var("APOLLO_EVENT_TITLE"));
 
+/// get a clone of state: `TEAMS` and `PUZZLES`
 pub(super) async fn get_game_state() -> (TeamsState, PuzzlesExisting) {
     let existing_puzzles = PUZZLES
         .read()
@@ -57,13 +59,10 @@ pub(super) async fn get_game_state() -> (TeamsState, PuzzlesExisting) {
     (TEAMS.read().await.clone(), existing_puzzles)
 }
 
-pub(super) async fn extract_session_id_cookie(
-    cookies: TypedHeader<Cookie>,
-) -> Result<Uuid, HttpError> {
-    let uuid = cookies
-        .get("session_id")
-        .or_unauthorized("missing session_id cookie")?;
-    Uuid::try_from(uuid).or_bad_request("invalid session_id cookie")
+/// extract session id cookie from cookie headers
+pub(super) async fn extract_sid_cookie(cookies: TypedHeader<Cookie>) -> Result<Uuid, HttpError> {
+    let uuid = cookies.get("sid").or_unauthorized("missing sid cookie")?;
+    Uuid::try_from(uuid).or_bad_request("invalid sid cookie")
 }
 
 #[cfg(feature = "server_state_save")]
@@ -78,6 +77,7 @@ pub(super) mod state_save {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     type Res<T> = Result<T, Box<dyn std::error::Error>>;
+    /// state that's stored on disk
     type StateOnDisk = (TeamsState, PuzzleSolutions, Teams);
 
     static STATE_PATH: LazyLock<String> =
@@ -179,8 +179,8 @@ pub(super) mod state_save {
     }
 
     async fn load_state_of<D: for<'de> serde::Deserialize<'de>, P: AsRef<Path>>(path: P) -> Res<D> {
-        let encypted_data = decrypt_state(path).await?;
-        let state = ciborium::from_reader(encypted_data.as_slice())?;
+        let encrypted_data = decrypt_state(path).await?;
+        let state = ciborium::from_reader(encrypted_data.as_slice())?;
         Ok(state)
     }
 
