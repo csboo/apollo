@@ -32,7 +32,7 @@ pub async fn auth_state() -> Result<String, HttpError> {
         .read()
         .await
         .get(&uuid)
-        .or_unauthorized("no such userid")?
+        .or_not_found("no user with this id")?
         .clone();
     Ok(username)
 }
@@ -49,6 +49,8 @@ pub async fn auth_state() -> Result<String, HttpError> {
 /// We'll return a `SetCookie` header if the login is successful.
 ///
 /// This will set a cookie in the user's browser that can be used for subsequent authenticated requests.
+///
+/// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
 #[post("/api/join", cookies: TypedHeader<Cookie>)]
 pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
     if let Ok(sent_uuid) = extract_sid_cookie(cookies).await
@@ -73,21 +75,45 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
     _ = USER_IDS.write().await.insert(uuid, username);
 
     #[cfg(feature = "server_state_save")]
-    state_save::save_state().await?;
+    tokio::spawn(state_save::save_state());
 
     SetHeader::new(format!("sid={uuid};HttpOnly;Secure;SameSite=Strict"))
         .or_internal_server_error("invalid sid cookie")
 }
 
-/// log out of the competition, but preserve progress of the team for future relogins
+/// log out of the competition,
+/// `wipe_progress` if requested,
+/// otherwise preserve team progress for future relogins
 ///
 /// returns empty, expired `sid` `SetCookie` header => browser deletes the valid one => user's now deauthed
+///
+/// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
 #[get("/api/logout", cookies: TypedHeader<Cookie>)]
-pub async fn logout() -> Result<SetHeader<SetCookie>, HttpError> {
+pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>, HttpError> {
     let uuid = extract_sid_cookie(cookies)
         .await
-        .or_bad_request("not logged in, not logging out")?;
-    _ = USER_IDS.write().await.remove(&uuid);
+        .or_not_found("didn't find session, not logging out")?;
+
+    if wipe_progress.is_some_and(|sure| sure) {
+        let username = USER_IDS
+            .read()
+            .await
+            .get(&uuid)
+            .or_not_found("refusing to wipe progress, as there's none")?
+            .clone();
+        info!("wiping {username:?} progress");
+        _ = TEAMS.write().await.remove(&username);
+    }
+
+    _ = USER_IDS
+        .write()
+        .await
+        .remove(&uuid)
+        .or_not_found("won't log out, no such session")?;
+
+    #[cfg(feature = "server_state_save")]
+    tokio::spawn(state_save::save_state());
+
     // this makes the client invalidate the actual sid cookie
     SetHeader::new("sid=;Expires=Thu, 01 Jan 1970 00:00:00 GMT")
         .or_internal_server_error("invalid deauth sid cookie")
@@ -115,7 +141,7 @@ pub async fn set_solution(
     PUZZLES.write().await.extend(puzzle_solutions);
 
     #[cfg(feature = "server_state_save")]
-    state_save::save_state().await?;
+    tokio::spawn(state_save::save_state());
 
     Ok(String::from("beallitottam a megoldast"))
 }
@@ -133,7 +159,7 @@ pub async fn submit_solution(
         .read()
         .await
         .get(&uuid)
-        .or_unauthorized("no such userid")?
+        .or_not_found("no such userid")?
         .clone(); // PERF: rather clone than lock
 
     PUZZLES
@@ -157,7 +183,7 @@ pub async fn submit_solution(
     drop(teams_lock);
 
     #[cfg(feature = "server_state_save")]
-    state_save::save_state().await?;
+    tokio::spawn(state_save::save_state());
 
     Ok(String::from("oke, megoldottad, elmentettem!"))
 }
