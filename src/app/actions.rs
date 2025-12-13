@@ -5,7 +5,7 @@ use crate::{
         models::{AuthState, Message},
         utils::{parse_puzzle_csv, popup_error, popup_normal},
     },
-    backend::models::{Puzzle, PuzzleSolutions, SolvedPuzzles},
+    backend::models::{Puzzle, PuzzleSolutions},
 };
 
 // TODO could be handeled in much better ways
@@ -172,6 +172,31 @@ pub fn handle_action(
                 .await;
             } else {
                 self::handle_user_submit(puzzle_id, puzzle_solution, message).await;
+            }
+        });
+    }
+}
+
+pub fn handle_logout(
+    mut auth: Signal<AuthState>,
+    message: Signal<Option<(Message, String)>>,
+) -> impl FnMut(Event<MouseData>) + 'static {
+    move |_| {
+        spawn(async move {
+            match crate::backend::endpoints::logout(None::<bool>).await {
+                Ok(_) => {
+                    popup_normal(
+                        message.clone(),
+                        format!("Viszlát, {}", auth.read().username),
+                    );
+                    auth.set(AuthState::default());
+                }
+                Err(e) => {
+                    popup_error(
+                        message.clone(),
+                        format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
+                    );
+                }
             }
         });
     }

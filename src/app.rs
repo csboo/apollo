@@ -8,12 +8,12 @@ mod hooks;
 mod models;
 mod utils;
 
-const BUTTON: &str = "ml-4 w-30 px-3 py-2 rounded-lg border border-(--dark2) bg-(--middle) text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+const BUTTON: &str = "w-30 px-3 py-2 rounded-lg border border-red-900 bg-red-400 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition";
 
 pub use crate::app::models::{AuthState, Message};
 
 use crate::{
-    app::utils::{popup_error, popup_normal},
+    app::actions::handle_logout,
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
     components::{
         input_section::InputSection, message_popup::MessagePopup, score_table::ScoreTable,
@@ -33,8 +33,8 @@ pub fn App() -> Element {
     let puzzle_id = use_signal(String::new);
     let puzzle_solution = use_signal(String::new);
     let puzzle_value = use_signal(String::new);
-    let mut auth = use_signal(AuthState::default);
-    let mut auth_current = auth.read();
+    let auth = use_signal(AuthState::default);
+    let auth_current = auth.read();
     let teams_state = use_signal(Vec::<(String, SolvedPuzzles)>::new);
     let puzzles = use_signal(Vec::<(PuzzleId, PuzzleValue)>::new);
     let message = use_signal(|| None::<(Message, String)>);
@@ -102,7 +102,6 @@ pub fn App() -> Element {
                     // Input section
                     div { class: "input-section",
                         InputSection {
-                            auth_current: auth_current.clone(),
                             auth,
                             message,
                             puzzle_id,
@@ -114,7 +113,7 @@ pub fn App() -> Element {
                         }
                     } // div: input-section
 
-                    if auth_current.joined {
+                    if auth_current.joined && !auth_current.is_admin{
                         div { class: "mt-5",
                             TeamStatus {
                                 team: auth_current.username.clone(),
@@ -123,20 +122,8 @@ pub fn App() -> Element {
                         }
                         div { class: "mt-5",
                             button { class: "{BUTTON}",
-                                onclick: move |_| async move {
-                                    match crate::backend::endpoints::logout().await {
-                                        Ok(_) => {
-                                            popup_normal(message.clone(), format!("Viszlát, {}", auth.read().username));
-                                            auth.set(AuthState::default());
-                                        }
-                                        Err(e) => {
-                                            popup_error(
-                                                message.clone(),
-                                                format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
-                                            );
-                                        }
-                                    }
-                                },
+                                onclick: handle_logout(auth, message), // TODO support wipe logout
+                                cursor: "pointer",
                                 "Kijelentkezés"
                             }
                         }
