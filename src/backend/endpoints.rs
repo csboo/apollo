@@ -88,7 +88,7 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
 /// returns empty, expired `sid` `SetCookie` header => browser deletes the valid one => user's now deauthed
 ///
 /// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
-#[get("/api/logout", cookies: TypedHeader<Cookie>)]
+#[post("/api/logout", cookies: TypedHeader<Cookie>)]
 pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>, HttpError> {
     let uuid = extract_sid_cookie(cookies)
         .await
