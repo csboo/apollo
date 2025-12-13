@@ -53,7 +53,11 @@ pub fn auto_hide_message(mut message: Signal<Option<(Message, String)>>) {
     use_effect(move || {
         if message.read().is_some() {
             spawn(async move {
+                #[cfg(feature = "web")]
                 gloo_timers::future::sleep(core::time::Duration::from_secs(5)).await;
+                #[cfg(feature = "desktop")]
+                tokio::time::sleep(core::time::Duration::from_secs(5)).await;
+
                 message.set(None);
             });
         }
