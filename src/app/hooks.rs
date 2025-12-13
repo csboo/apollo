@@ -12,7 +12,7 @@ pub fn load_title(mut title: Signal<Option<String>>, message: Signal<Option<(Mes
     use_future(move || async move {
         let result = crate::backend::endpoints::event_title()
             .await
-            .inspect_err(|e| popup_error(message.clone(), format!("Hiba: {}", e)))
+            .inspect_err(|e| popup_error(message, format!("Hiba: {}", e)))
             .ok();
 
         title.set(result.unwrap_or_else(|| "Apollo esemény".into()).into());
@@ -24,7 +24,7 @@ pub fn check_auth(mut auth: Signal<AuthState>, message: Signal<Option<(Message, 
         if let Ok(name) = crate::backend::endpoints::auth_state().await {
             auth.write().username = name.clone();
             auth.write().joined = true;
-            popup_normal(message.clone(), format!("Üdv újra, {name}"));
+            popup_normal(message, format!("Üdv újra, {name}"));
         }
     });
 }

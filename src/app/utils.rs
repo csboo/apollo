@@ -61,7 +61,7 @@ pub fn parse_puzzle_csv(
 
     if volte {
         popup_error(
-            message.clone(),
+            message,
             "néhány sort nem sikerült betölteni, nézd meg a konzolt",
         );
     }

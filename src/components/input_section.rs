@@ -118,7 +118,7 @@ pub fn InputSection(
                     r#type: "file",
                     r#accept: ".csv",
                     cursor: "pointer",
-                    onchange: actions::handle_csv(parsed_puzzles.clone(), message.clone()),
+                    onchange: actions::handle_csv(parsed_puzzles, message),
                 }
 
                 button { class: BUTTON, cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Beállítás" }

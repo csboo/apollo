@@ -93,7 +93,7 @@ pub fn App() -> Element {
                 ScoreTable {
                     puzzles: puzzles,
                     teams_state: teams_state,
-                    toggle_fullscreen: actions::toggle_fullscreen(is_fullscreen.clone()),
+                    toggle_fullscreen: actions::toggle_fullscreen(is_fullscreen),
                 }
             } // div: table-container
 

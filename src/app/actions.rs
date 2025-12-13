@@ -61,12 +61,12 @@ pub async fn handle_user_submit(
     let solution_current = puzzle_solution.read().clone();
     match crate::backend::endpoints::submit_solution(puzzle_current, solution_current).await {
         Ok(msg) => {
-            popup_normal(message.clone(), msg);
+            popup_normal(message, msg);
             puzzle_id.set(String::new());
             puzzle_solution.set(String::new());
         }
         Err(e) => {
-            popup_error(message.clone(), format!("Hiba: {}", e));
+            popup_error(message, format!("Hiba: {}", e));
         }
     }
 }
@@ -84,7 +84,7 @@ pub async fn handle_admin_submit(
         if parsed_puzzles.read().is_empty() {
             debug!("parsed puzzles is empty, trying from manual values");
             let Ok(value_current) = puzzle_value.read().parse() else {
-                popup_error(message.clone(), "Az érték csak szám lehet");
+                popup_error(message, "Az érték csak szám lehet");
                 return;
             };
             PuzzleSolutions::from([(
@@ -102,7 +102,7 @@ pub async fn handle_admin_submit(
     .await
     {
         Ok(msg) => {
-            popup_normal(message.clone(), msg);
+            popup_normal(message, msg);
             puzzle_id.set(String::new());
             puzzle_solution.set(String::new());
             puzzle_value.set(String::new());
@@ -110,7 +110,7 @@ pub async fn handle_admin_submit(
         }
         Err(e) => {
             popup_error(
-                message.clone(),
+                message,
                 format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
             );
         }
@@ -128,7 +128,7 @@ pub fn handle_csv(
                     warn!("couldn't parse text from selected file");
                     return;
                 };
-                parsed_puzzles.set(parse_puzzle_csv(&text, message.clone()));
+                parsed_puzzles.set(parse_puzzle_csv(&text, message));
                 debug!("set puzzles from csv");
             } else {
                 warn!("couldn't read selected file");
@@ -185,15 +185,12 @@ pub fn handle_logout(
         spawn(async move {
             match crate::backend::endpoints::logout(None::<bool>).await {
                 Ok(_) => {
-                    popup_normal(
-                        message.clone(),
-                        format!("Viszlát, {}", auth.read().username),
-                    );
+                    popup_normal(message, format!("Viszlát, {}", auth.read().username));
                     auth.set(AuthState::default());
                 }
                 Err(e) => {
                     popup_error(
-                        message.clone(),
+                        message,
                         format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
                     );
                 }
