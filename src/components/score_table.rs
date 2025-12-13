@@ -15,32 +15,33 @@ pub fn ScoreTable(
     rsx! {
         table { class: "",
             onclick: toggle_fullscreen,
+            cursor: "pointer",
             thead {
                 tr {
                     if !puzzles.read().is_empty() || !teams_state.read().is_empty() {
                         th { class: "text-left pl-2", "." }
-                    }
-                    for (id, value) in puzzles.read().iter() {
-                        th {
-                            span { class: "text-md",
-                                "{id}"
-                            }
-                            br {  }
-                            span { class: "text-sm",
-                                "({value} pont)"
-                            }
+                        for (id, value) in puzzles.read().iter() {
+                            th {
+                                span { class: "text-md",
+                                    "{id}"
+                                }
+                                br {  }
+                                span { class: "text-sm",
+                                    "({value} pont)"
+                                }
 
-                            // Tooltip {
-                            //     TooltipTrigger { class: "text-(--light)", "{id}" }
+                                // Tooltip {
+                                //     TooltipTrigger { class: "text-(--light)", "{id}" }
 
-                            //     TooltipContent {
-                            //         side: ContentSide::Top,
-                            //         align: ContentAlign::Center,
-                            //         div { class: "p-2 border border-(--dark2) rounded-md bg-(--dark)",
-                            //             "value: {value}"
-                            //         }
-                            //     }
-                            // }
+                                //     TooltipContent {
+                                //         side: ContentSide::Top,
+                                //         align: ContentAlign::Center,
+                                //         div { class: "p-2 border border-(--dark2) rounded-md bg-(--dark)",
+                                //             "value: {value}"
+                                //         }
+                                //     }
+                                // }
+                            }
                         }
                     }
                 }
