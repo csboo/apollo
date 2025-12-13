@@ -8,11 +8,11 @@ use crate::{
     backend::models::{Puzzle, PuzzleSolutions},
 };
 
-// TODO could be handeled in much better ways
-async fn check_admin_username(username: String) -> Result<bool, ServerFnError> {
+// TODO could be handeled better
+fn check_admin_username(username: String) -> bool {
     // use std::env;
-    let admin_username = "jani";
-    Ok(username == admin_username)
+    let admin_username = "admin";
+    username == admin_username
 }
 
 pub async fn handle_join(mut auth: Signal<AuthState>, message: Signal<Option<(Message, String)>>) {
@@ -22,7 +22,7 @@ pub async fn handle_join(mut auth: Signal<AuthState>, message: Signal<Option<(Me
         return;
     }
 
-    if check_admin_username(u.clone()).await.is_ok_and(|x| x) {
+    if check_admin_username(u.clone()) {
         auth.write().is_admin = true;
         auth.write().show_password_prompt = true;
 

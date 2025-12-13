@@ -33,6 +33,11 @@ pub fn InputSection(
         .into_iter()
         .flat_map(|solved| ref_puzzles.iter().filter(|(id, _)| !solved.contains(id)));
 
+    // needed for dropdown to have initial value
+    if let Some(firstvalid) = selectopts.clone().next().map(|(id, _)| id) {
+        puzzle_id.set(firstvalid.to_string());
+    }
+
     rsx!(
         if !auth_current.joined {
         // Join form
