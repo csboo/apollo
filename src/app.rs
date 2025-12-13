@@ -89,7 +89,7 @@ pub fn App() -> Element {
 
             } // div: other-container
 
-            div { class: "table-container mt-5",
+            div { class: "table-container mt-5 overflow-x-auto", style: "-webkit-overflow-scrolling: touch;",
                 ScoreTable {
                     puzzles: puzzles,
                     teams_state: teams_state,
@@ -100,7 +100,7 @@ pub fn App() -> Element {
             div { class: "others-container mt-5",
                 if title.read().as_ref().is_some_and(|t| !t.is_empty()) {
                     // Input section
-                    div { class: "input-section",
+                    div { class: "input-section relative input-flexy-boxy flex flex-wrap gap-3 flex-row",
                         InputSection {
                             auth,
                             message,

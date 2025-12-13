@@ -5,8 +5,8 @@ use crate::{
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
 };
 
-const BUTTON: &str = "ml-4 w-30 px-3 py-2 rounded-lg border border-(--dark2) bg-(--middle) text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
-const INPUT: &str = "w-50 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+const BUTTON: &str = "w-30 h-[50px] px-3 py-2 rounded-lg border border-(--dark2) bg-(--middle) text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
+const INPUT: &str = "w-50 h-[50px] px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
 const CSV_INPUT: &str = "w-70 px-3 py-2 rounded-lg border border-gray-300 bg-gray-100 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition";
 
 #[component]
@@ -40,29 +40,28 @@ pub fn InputSection(
 
     rsx!(
         if !auth_current.joined {
-        // Join form
-        input { class: INPUT,
-            r#type: "text",
-            placeholder: "Csapatnév",
-            value: "{auth_current.username}",
-            cursor: "text",
-            oninput: move |evt| auth.write().username = evt.value()
-        }
-
-        if auth_current.show_password_prompt {
-            input { class: "ml-4 {INPUT}",
-                r#type: "password",
-                placeholder: "Admin jelszó",
-                value: "{auth_current.password}",
+            // Join form
+            input { class: INPUT,
+                r#type: "text",
+                placeholder: "Csapatnév",
+                value: "{auth_current.username}",
                 cursor: "text",
-                oninput: move |evt| auth.write().password = evt.value()
+                oninput: move |evt| auth.write().username = evt.value()
             }
-        }
 
-        button { class: BUTTON, cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Belépés" }
-    } else {
+            if auth_current.show_password_prompt {
+                input { class: "{INPUT}",
+                    r#type: "password",
+                    placeholder: "Admin jelszó",
+                    value: "{auth_current.password}",
+                    cursor: "text",
+                    oninput: move |evt| auth.write().password = evt.value()
+                }
+            }
+
+            button { class: BUTTON, cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Belépés" }
+        } else {
         // Submit form
-        div { class: "input-flexy-boxy flex flex-row h-[50px]",
             if !auth_current.is_admin {
                 select {
                     class: "{INPUT}",
@@ -80,7 +79,7 @@ pub fn InputSection(
                     }
                 }
             } else {
-                input { class: "ml-4 {INPUT}",
+                input { class: "{INPUT}",
                     r#type: "text",
                     placeholder: "Feladat",
                     value: "{puzzle_id}",
@@ -89,7 +88,7 @@ pub fn InputSection(
                 }
             }
 
-            input { class: "ml-4 {INPUT}",
+            input { class: "{INPUT}",
                 r#type: "text",
                 placeholder: "Megoldás",
                 value: "{puzzle_solution}",
@@ -98,7 +97,7 @@ pub fn InputSection(
             }
 
             if auth_current.is_admin {
-                input { class: "ml-4 {INPUT}",
+                input { class: "{INPUT}",
                     r#type: "text",
                     placeholder: "Érték/Nyeremény",
                     value: "{puzzle_value}",
@@ -106,7 +105,7 @@ pub fn InputSection(
                     oninput: move |evt| puzzle_value.set(evt.value())
                 }
 
-                input { class: "ml-4 {INPUT}",
+                input { class: "{INPUT}",
                     r#type: "password",
                     placeholder: "Admin jelszó",
                     value: "{auth_current.password}",
@@ -114,7 +113,7 @@ pub fn InputSection(
                     oninput: move |evt| auth.write().password = evt.value()
                 }
 
-                input { class: "ml-4 {CSV_INPUT}",
+                input { class: "{CSV_INPUT}",
                     r#type: "file",
                     r#accept: ".csv",
                     cursor: "pointer",
@@ -125,7 +124,5 @@ pub fn InputSection(
             } else {
                 button { class: BUTTON, cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Küldés" }
             }
-        }
-
     })
 }
