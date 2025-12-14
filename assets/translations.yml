@@ -11,10 +11,10 @@ terms:
 # prepare-startup
 env-var-not-set:
   en: env var "{$key}" not set, can't proceed
-  hu: nincs beállítva a "{$key}" környezeti változó, feladjuk
+  hu: nincs beállítva a(z) "{$key}" környezeti változó, feladjuk
 empty-env-var:
   en: env var "{$key}" empty, can't proceed
-  hu: a "{$key}" környezeti változó üres, feladjuk
+  hu: a(z) "{$key}" környezeti változó üres, feladjuk
 state-load-err:
   en: "couldn't load saved state due tue: {$error}, exiting..."
   hu: "nem sikerült betölteni az elmentett állapotot: {$error}, feladjuk"
@@ -102,7 +102,7 @@ puzzle-already-solved:
   en: already solved this puzzle
   hu: ezt a feladatot már megoldottad
 puzzle-submit-success:
-  en: all right, succesfully saved your solution!
+  en: all right, successfully saved your solution!
   hu: hurrá, sikeresen elmentettük a megoldásod!
 
 # internal server error

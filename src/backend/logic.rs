@@ -20,11 +20,11 @@ pub(super) static TEAMS: LazyLock<RwLock<TeamsState>> =
 /// without `key`, the app won't run
 fn ensure_env_var(key: &str) -> String {
     let Ok(value) = env::var(key) else {
-        error!("nincs beállítva a {key:?} környezeti változó, feladjuk");
+        error!("nincs beállítva a(z) {key:?} környezeti változó, feladjuk");
         process::exit(1);
     };
     if value.is_empty() {
-        error!("a {key:?} környezeti változó üres, feladjuk");
+        error!("a(z) {key:?} környezeti változó üres, feladjuk");
         process::exit(1);
     }
     value
