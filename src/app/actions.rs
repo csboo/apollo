@@ -8,7 +8,7 @@ use crate::{
     backend::models::{Puzzle, PuzzleSolutions},
 };
 
-// TODO could be handeled better
+// TODO could be handled better
 fn check_admin_username(username: String) -> bool {
     // use std::env;
     let admin_username = "admin";
