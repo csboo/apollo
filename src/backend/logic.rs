@@ -20,11 +20,11 @@ pub(super) static TEAMS: LazyLock<RwLock<TeamsState>> =
 /// without `key`, the app won't run
 fn ensure_env_var(key: &str) -> String {
     let Ok(value) = env::var(key) else {
-        error!("{key:?} env var not set, can't proceed");
+        error!("nincs beállítva a {key:?} környezeti változó, feladjuk");
         process::exit(1);
     };
     if value.is_empty() {
-        error!("{key:?} env var empty, can't proceed");
+        error!("a {key:?} környezeti változó üres, feladjuk");
         process::exit(1);
     }
     value
@@ -37,7 +37,7 @@ pub async fn prepare_startup() {
     _ = LazyLock::force(&ADMIN_PASSWORD);
     #[cfg(feature = "server_state_save")]
     if let Err(e) = state_save::load_state().await {
-        error!("couldn't load state: {e}, exiting...");
+        error!("nem sikerült betölteni az elmentett állapotot: {e}, feladjuk");
         process::exit(1);
     }
 }
@@ -61,8 +61,10 @@ pub(super) async fn get_game_state() -> (TeamsState, PuzzlesExisting) {
 
 /// extract session id cookie from cookie headers
 pub(super) async fn extract_sid_cookie(cookies: TypedHeader<Cookie>) -> Result<Uuid, HttpError> {
-    let uuid = cookies.get("sid").or_unauthorized("missing sid cookie")?;
-    Uuid::try_from(uuid).or_bad_request("invalid sid cookie")
+    let uuid = cookies
+        .get("sid")
+        .or_unauthorized("hiányzik a munkamenet-azonosító süti")?;
+    Uuid::try_from(uuid).or_bad_request("érvénytelen munkamenet-azonosító süti")
 }
 
 #[cfg(feature = "server_state_save")]
@@ -98,7 +100,7 @@ pub(super) mod state_save {
             &*SALT,
             &ARGON2CONF,
         )
-        .inspect_err(|e| error!("couldn't hash password: {e}")) else {
+        .inspect_err(|e| error!("nem sikerült hasítani a jelszót: {e}")) else {
             process::exit(1);
         };
         derived_key
@@ -108,7 +110,7 @@ pub(super) mod state_save {
         let cipher = XChaCha20Poly1305::new(DERIVED_KEY.as_slice().into());
         let encrypted_content = cipher
             .encrypt(&NONCE, raw_content)
-            .map_err(|e| format!("encryption error: {e}"))?;
+            .map_err(|e| format!("nem sikerült a titkosítás: {e}"))?;
 
         let mut buf = Vec::with_capacity(SALT.len() + NONCE.len() + encrypted_content.len());
 
@@ -123,16 +125,17 @@ pub(super) mod state_save {
         let mut salt = [0u8; 32];
         let mut nonce = Nonce::<XChaCha20Poly1305>::default();
 
+        let encrypted_path = encrypted_path.as_ref();
         let mut encrypted_file = tokio::fs::File::open(encrypted_path).await?;
 
         let mut read_count = encrypted_file.read(&mut salt).await?;
         if read_count != salt.len() {
-            return Err("couldn't read salt".into());
+            return Err("nem sikerült kiolvasni a sót".into());
         }
 
         read_count = encrypted_file.read(&mut nonce).await?;
         if read_count != nonce.len() {
-            return Err("couldn't read nonce".into());
+            return Err("nem sikerült kiolvasni az alkalmi kifejezést".into());
         }
 
         let mut derived_key = argon2::hash_raw(
@@ -147,7 +150,7 @@ pub(super) mod state_save {
 
         let decrypted_content = cipher
             .decrypt(&nonce, buf.as_slice())
-            .map_err(|e| format!("error decrypting file, make sure you're trying to decrypt it with the same password that was used for it's encryption: {e}"))?;
+            .map_err(|e| format!("nem sikerült visszafejteni a fajlt({encrypted_path:?}), győződj meg róla, hogy ugyanazzal a jelszóval próbálkozol, amivel titkosítva lett: {e}"))?;
 
         salt.zeroize();
         nonce.zeroize();
@@ -167,13 +170,17 @@ pub(super) mod state_save {
 
         let mut state_buf = vec![];
         ciborium::into_writer(&disk_state, &mut state_buf)
-            .map_err(|e| ise(format!("couldn't serialize state to cbor: {e}")))?;
+            .map_err(|e| ise(format!("nem sikerült cbor-rá alakítani az állapotot: {e}")))?;
         let encrypted_state = encrypt(&state_buf)
             .await
-            .map_err(|e| ise(format!("couldn't encrypt state: {e}")))?;
+            .map_err(|e| ise(format!("nem sikerült titkosítani az állapot: {e}")))?;
         tokio::fs::write(&*STATE_PATH, encrypted_state)
             .await
-            .map_err(|e| ise(format!("couldn't write state to file: {e}")))?;
+            .map_err(|e| {
+                ise(format!(
+                    "nem sikerült az állapotot fájlba({STATE_PATH:?}) írni: {e}"
+                ))
+            })?;
 
         Ok(())
     }
@@ -194,7 +201,7 @@ pub(super) mod state_save {
         PUZZLES.write().await.extend(puzzles_state);
         TEAMS.write().await.extend(teams_state);
         USER_IDS.write().await.extend(userid_state);
-        info!("successfully loaded saved state from {STATE_PATH:?} to memory");
+        info!("sikeresen betöltöttük az elmentett állapotot fájlból({STATE_PATH:?}) a memóriába");
         Ok(())
     }
 }

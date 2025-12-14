@@ -32,7 +32,7 @@ pub async fn auth_state() -> Result<String, HttpError> {
         .read()
         .await
         .get(&uuid)
-        .or_not_found("no user with this id")?
+        .or_not_found("nincs ezzel az azonosítóval csapat")?
         .clone();
     Ok(username)
 }
@@ -56,11 +56,11 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
     if let Ok(sent_uuid) = extract_sid_cookie(cookies).await
         && USER_IDS.read().await.contains_key(&sent_uuid)
     {
-        return HttpError::forbidden("already logged in");
+        return HttpError::forbidden("már be vagy lépve");
     }
 
     // whether someone's currently logged in to this account: `USER_IDS` contains `username`
-    (!USER_IDS.read().await.values().any(|u| u == &username)).or_forbidden("taken session")?;
+    (!USER_IDS.read().await.values().any(|u| u == &username)).or_forbidden("foglalt munkamenet")?;
 
     // brand new team
     if !TEAMS.read().await.contains_key(&username) {
@@ -78,7 +78,7 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
     tokio::spawn(state_save::save_state());
 
     SetHeader::new(format!("sid={uuid};HttpOnly;Secure;SameSite=Strict"))
-        .or_internal_server_error("invalid sid cookie")
+        .or_internal_server_error("valahogy érvénytelen munkamenet-azonosító sütit generáltunk...")
 }
 
 /// log out of the competition,
@@ -90,18 +90,16 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
 /// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
 #[post("/api/logout", cookies: TypedHeader<Cookie>)]
 pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>, HttpError> {
-    let uuid = extract_sid_cookie(cookies)
-        .await
-        .or_not_found("didn't find session, not logging out")?;
+    let uuid = extract_sid_cookie(cookies).await?;
 
     if wipe_progress.is_some_and(|sure| sure) {
         let username = USER_IDS
             .read()
             .await
             .get(&uuid)
-            .or_not_found("refusing to wipe progress, as there's none")?
+            .or_not_found("nincs előrehaladást, így nem töröljük azt")?
             .clone();
-        info!("wiping {username:?} progress");
+        info!("a {username:?} csapat előrelhaladása törlésre kerül");
         _ = TEAMS.write().await.remove(&username);
     }
 
@@ -109,14 +107,14 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
         .write()
         .await
         .remove(&uuid)
-        .or_not_found("won't log out, no such session")?;
+        .or_not_found("nincs ilyen munkamenet, nem léptetünk ki")?;
 
     #[cfg(feature = "server_state_save")]
     tokio::spawn(state_save::save_state());
 
     // this makes the client invalidate the actual sid cookie
     SetHeader::new("sid=;Expires=Thu, 01 Jan 1970 00:00:00 GMT")
-        .or_internal_server_error("invalid deauth sid cookie")
+        .or_internal_server_error("valahogy érvénytelen munkamenet-azonosító sütit generáltunk...")
 }
 
 /// set `puzzle_solutions` with `ADMIN_PASSWORD`
@@ -129,13 +127,13 @@ pub async fn set_solution(
 ) -> Result<String, HttpError> {
     // submitting as admin
     (*ADMIN_PASSWORD.expose_secret() == password)
-        .or_unauthorized("incorrect password for APOLLO_MESTER")?;
+        .or_unauthorized("érvénytelen jelszó az APOLLO_MESTER felhasználóhoz")?;
 
     let puzzles_lock = PUZZLES.read().await;
     puzzle_solutions
         .keys()
         .any(|new_k| !puzzles_lock.contains_key(new_k))
-        .or_forbidden("one of the puzzles already set")?;
+        .or_forbidden("legalább egy feladat már be van állítva")?;
     drop(puzzles_lock);
 
     PUZZLES.write().await.extend(puzzle_solutions);
@@ -143,7 +141,9 @@ pub async fn set_solution(
     #[cfg(feature = "server_state_save")]
     tokio::spawn(state_save::save_state());
 
-    Ok(String::from("beallitottam a megoldast"))
+    Ok(String::from(
+        "sikeresen beállítottuk az összes feladat megoldását és értékét",
+    ))
 }
 
 /// submit a solution as a team
@@ -159,31 +159,31 @@ pub async fn submit_solution(
         .read()
         .await
         .get(&uuid)
-        .or_not_found("no such userid")?
+        .or_not_found("nincs ezzel az azonosítóval csapat")?
         .clone(); // PERF: rather clone than lock
 
     PUZZLES
         .read()
         .await
         .get(&puzzle_id)
-        .or_not_found("no such puzzle")?
+        .or_not_found("nincs ezzel az azonosítóval feladat")?
         .solution
         .eq(&solution)
-        .or_forbidden("incorrect solution")?;
+        .or_forbidden("érvénytelen megoldás ehhez a feladathoz")?;
 
     let mut teams_lock = TEAMS.write().await;
 
     let team_solved = teams_lock
         .get_mut(&username)
-        .or_internal_server_error("shouldn't have got this far")?;
+        .or_internal_server_error("ezt a problémát már régebben meg kellett volna oldani...")?;
 
     team_solved
         .insert(puzzle_id)
-        .or_forbidden("already solved this puzzle")?;
+        .or_forbidden("ezt a feladatot már megoldottad")?;
     drop(teams_lock);
 
     #[cfg(feature = "server_state_save")]
     tokio::spawn(state_save::save_state());
 
-    Ok(String::from("oke, megoldottad, elmentettem!"))
+    Ok(String::from("hurrá, sikeresen elmentettük a megoldásod!"))
 }
