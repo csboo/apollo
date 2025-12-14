@@ -1,4 +1,4 @@
-use dioxus::prelude::*;
+use dioxus::{html::textarea::placeholder, prelude::*};
 
 use crate::{
     app::{AuthState, Message, actions},
@@ -33,11 +33,6 @@ pub fn InputSection(
         .into_iter()
         .flat_map(|solved| ref_puzzles.iter().filter(|(id, _)| !solved.contains(id)));
 
-    // needed for dropdown to have initial value
-    if let Some(firstvalid) = selectopts.clone().next().map(|(id, _)| id) {
-        puzzle_id.set(firstvalid.to_string());
-    }
-
     rsx!(
         if !auth_current.joined {
             // Join form
@@ -70,6 +65,9 @@ pub fn InputSection(
                         debug!("{}", evt.value());
                         puzzle_id.set(evt.value());
                     },
+                    if puzzle_id.is_empty() {
+                        option { disabled: true, selected: true, "Feladat kiválasztása" }
+                    }
                     for (id, _) in selectopts {
                         option {
                             cursor: "pointer",
