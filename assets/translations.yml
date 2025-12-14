@@ -1,0 +1,114 @@
+# It's a sort of [fluent](https://projectfluent.org)-like grammar file for reference, not used atm.
+
+terms:
+  en:
+    -sid-cookie: session-id cookie
+  hu:
+    -sid-cookie: munkamenet-azonosító süti
+
+# LOGIC
+
+# prepare-startup
+env-var-not-set:
+  en: env var "{$key}" not set, can't proceed
+  hu: nincs beállítva a "{$key}" környezeti változó, feladjuk
+empty-env-var:
+  en: env var "{$key}" empty, can't proceed
+  hu: a "{$key}" környezeti változó üres, feladjuk
+state-load-err:
+  en: "couldn't load saved state due tue: {$error}, exiting..."
+  hu: "nem sikerült betölteni az elmentett állapotot: {$error}, feladjuk"
+
+# extract-sid-cookie
+no-sid:
+  en: missing {-sid-cookie}
+  hu: hiányzik a {-sid-cookie}
+invalid-sid:
+  en: invalid {-sid-cookie}
+  hu: érvénytelen {-sid-cookie}
+
+# state-save
+hash-err:
+  en: "couldn't hash password: {$error}"
+  hu: "nem sikerült hasítani a jelszót: {$error}"
+encryption-err:
+  en: "encryption error: {$error}"
+  hu: "nem sikerült a titkosítás: {$error}"
+salt-read-err:
+  en: couldn't read salt
+  hu: nem sikerült kiolvasni a sót
+nonce-read-err:
+  en: couldn't read nonce
+  hu: nem sikerült kiolvasni az alkalmi kifejezést
+decryption-err:
+  en: "error decrypting file({$path}), make sure you're trying to decrypt it with the same password that was used for it's encryption: {$error}"
+  hu: "nem sikerült visszafejteni a fajlt({$path}), győződj meg róla, hogy ugyanazzal a jelszóval próbálkozol, amivel titkosítva lett: {$error}"
+state-ser-err:
+  en: "couldn't serialize state to cbor: {$error}"
+  hu: "nem sikerült cbor-rá alakítani az állapotot: {$error}"
+state-encryption-err:
+  en: "couldn't encrypt state: {$error}"
+  hu: "nem sikerült titkosítani az állapot: {$error}"
+state-write-err:
+  en: "couldn't write state to file({$path}): {$error}"
+  hu: "nem sikerült az állapotot fájlba({$path}) írni: {$error}"
+state-load-success:
+  en: "successfully loaded saved state from file({$path}) to memory"
+  hu: "sikeresen betöltöttük az elmentett állapotot fájlból({$path}) a memóriába"
+
+# ENDPOINTS
+
+# join
+uuid-no-team:
+  en: no team found with this id
+  hu: nincs ezzel az azonosítóval csapat
+already-in:
+  en: already logged in
+  hu: már be vagy lépve
+taken-session:
+  en: taken session
+  hu: foglalt munkamenet
+
+# logout
+no-progress-no-wipe:
+  en: refusing to wipe progress, as there's none found
+  hu: nincs előrehaladást, így nem töröljük azt
+wiping-progress-of:
+  en: wiping progress  of {$name}
+  hu: a {$name} csapat előrelhaladása törlésre kerül
+invalid-sid-no-logout:
+  en: no such session, won't log out
+  hu: nincs ilyen munkamenet, nem léptetünk ki
+
+# set solution
+incorrect-password:
+  en: incorrect password for {$name}
+  hu: érvénytelen jelszó a(z) {$name} felhasználóhoz
+puzzles-already-set:
+  en: at least one of the puzzles already set
+  hu: legalább egy feladat már be van állítva
+set-solution-success:
+  en: successfully set all the puzzle solutions and their values
+  hu: sikeresen beállítottuk az összes feladat megoldását és értékét
+
+# submit solution
+no-puzzle:
+  en: no puzzle found with this id
+  hu: nincs ezzel az azonosítóval feladat
+incorrect-puzzle-solution:
+  en: incorrect solution for this puzzle
+  hu: érvénytelen megoldás ehhez a feladathoz
+puzzle-already-solved:
+  en: already solved this puzzle
+  hu: ezt a feladatot már megoldottad
+puzzle-submit-success:
+  en: all right, succesfully saved your solution!
+  hu: hurrá, sikeresen elmentettük a megoldásod!
+
+# internal server error
+sid-gen-err:
+  en: somehow generated invalid {-sid-cookie}...
+  hu: valahogy érvénytelen {-sid-cookie}t generáltunk...
+caught-earlier:
+  en: shouldn't have made it this far...
+  hu: ezt a problémát már régebben meg kellett volna oldani...

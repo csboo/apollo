@@ -1,4 +1,4 @@
-use dioxus::{html::textarea::placeholder, prelude::*};
+use dioxus::prelude::*;
 
 use crate::{
     app::{AuthState, Message, actions},
