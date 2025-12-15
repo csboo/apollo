@@ -5,7 +5,7 @@ use dioxus::prelude::*;
 use {
     super::logic::*,
     dioxus::fullstack::{Cookie, TypedHeader},
-    secrecy::ExposeSecret,
+    secrecy::zeroize::Zeroize,
     uuid::Uuid,
 };
 
@@ -117,6 +117,39 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
         .or_internal_server_error("valahogy érvénytelen munkamenet-azonosító sütit generáltunk...")
 }
 
+/// before this, no solution can be set, no state will be loaded
+/// NOTE: might take a while, as it hashes the `password` and loads the state
+/// TODO: don't send raw `password` over the wire, think of the Man In The Mirror...
+#[post("/api/set_admin_password")]
+pub async fn set_admin_password(mut password: String) -> Result<String, HttpError> {
+    HASHED_PWD
+        .get()
+        .is_none()
+        .or_forbidden("már be van állítva a mesterjelszó")?;
+
+    let hashed_key = match argon2::hash_raw(password.as_bytes(), &*SALT, &ARGON2CONF) {
+        Ok(hk) => hk,
+        Err(e) => {
+            HttpError::internal_server_error(format!("nem sikerült hasítani a jelszót: {e}"))?
+        }
+    };
+
+    _ = HASHED_PWD.set(hashed_key); // NOTE: safe to ignore, as `is_none`, see above
+
+    #[cfg(feature = "server_state_save")]
+    if let Err(err) = state_save::load_state(password.as_bytes()).await {
+        return HttpError::internal_server_error(format!(
+            "nem sikerült betölteni az állapotot: {err}"
+        ));
+    }
+
+    password.zeroize();
+
+    Ok(String::from(
+        "sikeresen beállítottuk a mesterjelszót, kezdődhet a játék!",
+    ))
+}
+
 /// set `puzzle_solutions` with `ADMIN_PASSWORD`
 ///
 /// NOTE: if any of the solutions is incorrect, none will be saved
@@ -126,8 +159,13 @@ pub async fn set_solution(
     password: String,
 ) -> Result<String, HttpError> {
     // submitting as admin
-    (*ADMIN_PASSWORD.expose_secret() == password)
-        .or_unauthorized("érvénytelen jelszó az APOLLO_MESTER felhasználóhoz")?;
+    let hashed_key = HASHED_PWD
+        .get()
+        .or_forbidden("még nincs beállítva mesterjelszó")?;
+    let pwd_matches = argon2::verify_raw(password.as_bytes(), &*SALT, hashed_key, &ARGON2CONF)
+        .inspect_err(|e| error!("nem sikerült azonosítani a jelszót: {e}"))
+        .or_internal_server_error("nem sikerült azonosítani jelszót")?;
+    pwd_matches.or_unauthorized("érvénytelen jelszó")?;
 
     let puzzles_lock = PUZZLES.read().await;
     puzzle_solutions

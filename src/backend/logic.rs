@@ -1,14 +1,14 @@
 use super::models::*;
+use chacha20poly1305::aead::{OsRng, rand_core::RngCore};
 use dioxus::fullstack::{Cookie, TypedHeader};
 use dioxus::prelude::*;
-use secrecy::SecretString;
-use std::sync::LazyLock;
-use std::{collections::HashMap, env, process};
+use std::sync::{LazyLock, OnceLock};
+use std::{collections::HashMap, env};
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
 /// who's joined -> their name
-type Teams = HashMap<uuid::Uuid, String>;
+type Teams = HashMap<Uuid, String>;
 pub(super) static USER_IDS: LazyLock<RwLock<Teams>> = LazyLock::new(|| RwLock::new(Teams::new()));
 
 pub(super) static PUZZLES: LazyLock<RwLock<PuzzleSolutions>> =
@@ -17,33 +17,14 @@ pub(super) static PUZZLES: LazyLock<RwLock<PuzzleSolutions>> =
 pub(super) static TEAMS: LazyLock<RwLock<TeamsState>> =
     LazyLock::new(|| RwLock::new(TeamsState::new()));
 
-/// without `key`, the app won't run
-fn ensure_env_var(key: &str) -> String {
-    let Ok(value) = env::var(key) else {
-        error!("nincs beállítva a {key:?} környezeti változó, feladjuk");
-        process::exit(1);
-    };
-    if value.is_empty() {
-        error!("a {key:?} környezeti változó üres, feladjuk");
-        process::exit(1);
-    }
-    value
-}
-
-/// # exits with 1
-/// - if necessary admin env vars aren't set
-/// - if should load state but can't
-pub async fn prepare_startup() {
-    _ = LazyLock::force(&ADMIN_PASSWORD);
-    #[cfg(feature = "server_state_save")]
-    if let Err(e) = state_save::load_state().await {
-        error!("nem sikerült betölteni az elmentett állapotot: {e}, feladjuk");
-        process::exit(1);
-    }
-}
-
-pub(super) static ADMIN_PASSWORD: LazyLock<SecretString> =
-    LazyLock::new(|| ensure_env_var("APOLLO_MESTER_JELSZO").into());
+// SECURITY: it's fine like this, right?
+pub(super) static SALT: LazyLock<[u8; 32]> = LazyLock::new(|| {
+    let mut salt = [0u8; 32];
+    OsRng.fill_bytes(&mut salt);
+    salt
+});
+pub(super) static ARGON2CONF: LazyLock<argon2::Config> = LazyLock::new(argon2::Config::default);
+pub(super) static HASHED_PWD: OnceLock<Vec<u8>> = OnceLock::new();
 pub(super) static EVENT_TITLE: LazyLock<Result<String, env::VarError>> =
     LazyLock::new(|| env::var("APOLLO_EVENT_TITLE"));
 
@@ -69,59 +50,45 @@ pub(super) async fn extract_sid_cookie(cookies: TypedHeader<Cookie>) -> Result<U
 
 #[cfg(feature = "server_state_save")]
 pub(super) mod state_save {
-    use super::{ADMIN_PASSWORD, PUZZLES, TEAMS, Teams, USER_IDS};
+    use super::{HASHED_PWD, PUZZLES, SALT, TEAMS, Teams, USER_IDS};
     use crate::backend::models::*;
-    use chacha20poly1305::aead::{Aead, Nonce, OsRng, rand_core::RngCore};
+    use chacha20poly1305::aead::{Aead, Nonce, OsRng};
     use chacha20poly1305::{AeadCore, KeyInit, XChaCha20Poly1305};
-    use dioxus::{fullstack::serde, prelude::*};
-    use secrecy::{ExposeSecret, zeroize::Zeroize};
-    use std::{path::Path, process, sync::LazyLock};
+    use dioxus::prelude::*;
+    use secrecy::zeroize::Zeroize; // TODO: either deal with secrecy, or use zeroize itself
+    use std::{env, path::Path, sync::LazyLock};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     type Res<T> = Result<T, Box<dyn std::error::Error>>;
     /// state that's stored on disk
     type StateOnDisk = (TeamsState, PuzzleSolutions, Teams);
 
-    static STATE_PATH: LazyLock<String> =
-        LazyLock::new(|| super::ensure_env_var("APOLLO_STATE_PATH"));
-
-    static ARGON2CONF: LazyLock<argon2::Config> = LazyLock::new(argon2::Config::default);
-    static SALT: LazyLock<[u8; 32]> = LazyLock::new(|| {
-        let mut salt = [0u8; 32];
-        OsRng.fill_bytes(&mut salt);
-        salt
-    });
-    // SECURITY: should it be generated on each save?
-    static NONCE: LazyLock<Nonce<XChaCha20Poly1305>> =
-        LazyLock::new(|| XChaCha20Poly1305::generate_nonce(&mut OsRng));
-    static DERIVED_KEY: LazyLock<Vec<u8>> = LazyLock::new(|| {
-        let Ok(derived_key) = argon2::hash_raw(
-            ADMIN_PASSWORD.expose_secret().as_bytes(),
-            &*SALT,
-            &ARGON2CONF,
-        )
-        .inspect_err(|e| error!("nem sikerült hasítani a jelszót: {e}")) else {
-            process::exit(1);
-        };
-        derived_key
+    static STATE_PATH: LazyLock<String> = LazyLock::new(|| {
+        let def = String::from("apollo-state.cbor.encrypted"); // WARN: might not exist...
+        let path = env::var("APOLLO_STATE_PATH")
+            .inspect_err(|e| warn!("nincs beallitva az állapot mentési helye: {e}"))
+            .unwrap_or_else(|_| def.clone());
+        if path.is_empty() { def } else { path }
     });
 
     async fn encrypt(raw_content: &[u8]) -> Res<Vec<u8>> {
-        let cipher = XChaCha20Poly1305::new(DERIVED_KEY.as_slice().into());
+        let hashed_key = HASHED_PWD.get().ok_or("nincs még beállítva mesterjelszó")?;
+        let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
+        let cipher = XChaCha20Poly1305::new(hashed_key.as_slice().into());
         let encrypted_content = cipher
-            .encrypt(&NONCE, raw_content)
+            .encrypt(&nonce, raw_content)
             .map_err(|e| format!("nem sikerült a titkosítás: {e}"))?;
 
-        let mut buf = Vec::with_capacity(SALT.len() + NONCE.len() + encrypted_content.len());
+        let mut buf = Vec::with_capacity(SALT.len() + nonce.len() + encrypted_content.len());
 
         buf.write_all(&*SALT).await?;
-        buf.write_all(&NONCE).await?;
+        buf.write_all(&nonce).await?;
         buf.write_all(&encrypted_content).await?;
 
         Ok(buf)
     }
 
-    async fn decrypt_state(encrypted_path: impl AsRef<Path>) -> Res<Vec<u8>> {
+    pub async fn decrypt_state(encrypted_path: impl AsRef<Path>, raw_pwd: &[u8]) -> Res<Vec<u8>> {
         let mut salt = [0u8; 32];
         let mut nonce = Nonce::<XChaCha20Poly1305>::default();
 
@@ -138,11 +105,7 @@ pub(super) mod state_save {
             return Err("nem sikerült kiolvasni az alkalmi kifejezést".into());
         }
 
-        let mut derived_key = argon2::hash_raw(
-            ADMIN_PASSWORD.expose_secret().as_bytes(),
-            &salt,
-            &ARGON2CONF,
-        )?;
+        let mut derived_key = argon2::hash_raw(raw_pwd, &salt, &super::ARGON2CONF)?;
 
         let cipher = XChaCha20Poly1305::new(derived_key.as_slice().into());
         let mut buf = vec![];
@@ -185,19 +148,16 @@ pub(super) mod state_save {
         Ok(())
     }
 
-    async fn load_state_of<D: for<'de> serde::Deserialize<'de>, P: AsRef<Path>>(path: P) -> Res<D> {
-        let encrypted_data = decrypt_state(path).await?;
-        let state = ciborium::from_reader(encrypted_data.as_slice())?;
-        Ok(state)
-    }
-
     /// load state from `STATE_PATH` into memory if it exists
-    pub(super) async fn load_state() -> Res<()> {
+    pub async fn load_state(raw_pwd: &[u8]) -> Res<()> {
         if !tokio::fs::try_exists(&*STATE_PATH).await? {
+            warn!("nem létezik a megadott állapot-fájl({STATE_PATH:?})");
             return Ok(()); // no need to load, it's fine
         }
-        let (teams_state, puzzles_state, userid_state): StateOnDisk =
-            load_state_of(&*STATE_PATH).await?;
+        let (teams_state, puzzles_state, userid_state): StateOnDisk = {
+            let encrypted_data = decrypt_state(&*STATE_PATH, raw_pwd).await?;
+            ciborium::from_reader(encrypted_data.as_slice())?
+        };
         PUZZLES.write().await.extend(puzzles_state);
         TEAMS.write().await.extend(teams_state);
         USER_IDS.write().await.extend(userid_state);
