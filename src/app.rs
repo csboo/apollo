@@ -9,6 +9,7 @@ mod models;
 mod utils;
 
 const BUTTON: &str = "w-30 px-3 py-2 rounded-lg border border-red-900 bg-red-400 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition";
+pub mod utils;
 
 pub use crate::app::models::{AuthState, Message};
 

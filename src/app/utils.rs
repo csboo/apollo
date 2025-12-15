@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 
 use crate::{
     app::models::Message,
-    backend::models::{Puzzle, PuzzleSolutions},
+    backend::models::{Puzzle, PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
 };
 
 pub fn parse_puzzle_csv(
@@ -81,4 +81,12 @@ pub fn popup_normal(
     text: impl std::fmt::Display,
 ) {
     signal_message.set(Some((Message::MsgNorm, text.to_string())));
+}
+
+pub fn get_points_of(team: &(String, SolvedPuzzles), puzzles: Vec<(PuzzleId, PuzzleValue)>) -> u32 {
+    puzzles
+        .iter()
+        .filter(|(id, _)| team.1.contains(id))
+        .map(|(_, value)| *value)
+        .sum()
 }

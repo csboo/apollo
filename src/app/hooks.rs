@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::{
     app::{
         AuthState, Message,
-        utils::{popup_error, popup_normal},
+        utils::{get_points_of, popup_error, popup_normal},
     },
     backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles},
 };
@@ -40,7 +40,11 @@ pub fn subscribe_stream(
             puzzles_sorted.sort();
 
             let mut teams_sorted: Vec<_> = new_team_state.into_iter().collect();
-            teams_sorted.sort_by(|a, b| b.1.len().cmp(&a.1.len()).then_with(|| a.0.cmp(&b.0)));
+            teams_sorted.sort_by(|a, b| {
+                get_points_of(b, puzzles.read().clone())
+                    .cmp(&get_points_of(a, puzzles.read().clone()))
+                    .then_with(|| a.0.cmp(&b.0))
+            });
 
             puzzles.set(puzzles_sorted);
             teams_state.set(teams_sorted);
