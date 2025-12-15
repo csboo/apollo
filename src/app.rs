@@ -6,8 +6,6 @@ use dioxus::prelude::*;
 pub mod actions;
 mod hooks;
 mod models;
-
-const BUTTON: &str = "w-30 px-3 py-2 rounded-lg border border-red-900 bg-red-400 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition";
 pub mod utils;
 
 pub use crate::app::models::{AuthState, Message};
@@ -21,7 +19,7 @@ use crate::{
 };
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
-const MAIN_CSS: Asset = asset!("/assets/main.css");
+// const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 
 #[component]
@@ -53,7 +51,7 @@ pub fn App() -> Element {
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
-        document::Link { rel: "stylesheet", href: MAIN_CSS }
+        // document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
         div { class: if *is_fullscreen.read() { "table-only" } else { "normal" },

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./assets/main.css";
 
 @theme {
     --text-lg: 3rem;

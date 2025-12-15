@@ -2,9 +2,7 @@ use dioxus::prelude::*;
 
 use crate::app::{AuthState, Message, actions::handle_logout, utils::get_points_of};
 use crate::backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles};
-use crate::components::{alert_dialog::*, team_status::TeamStatus};
-
-const BUTTON: &str = "min-w-30 h-[35px] px-3 py-2 rounded-lg border border-red-900 bg-red-400 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition";
+use crate::components::{alert_dialog::*, tailwind_constants::BUTTON, team_status::TeamStatus};
 
 #[component]
 pub fn TeamSection(
