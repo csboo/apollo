@@ -180,10 +180,15 @@ pub fn handle_action(
 pub fn handle_logout(
     mut auth: Signal<AuthState>,
     message: Signal<Option<(Message, String)>>,
+    superlogout: bool,
 ) -> impl FnMut(Event<MouseData>) + 'static {
+    let wipe = match superlogout {
+        true => Some(true),
+        false => None,
+    };
     move |_| {
         spawn(async move {
-            match crate::backend::endpoints::logout(None::<bool>).await {
+            match crate::backend::endpoints::logout(wipe).await {
                 Ok(_) => {
                     popup_normal(message, format!("Viszlát, {}", auth.read().username));
                     auth.set(AuthState::default());

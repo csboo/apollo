@@ -6,7 +6,6 @@ use dioxus::prelude::*;
 pub mod actions;
 mod hooks;
 mod models;
-mod utils;
 
 const BUTTON: &str = "w-30 px-3 py-2 rounded-lg border border-red-900 bg-red-400 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition";
 pub mod utils;
@@ -14,11 +13,10 @@ pub mod utils;
 pub use crate::app::models::{AuthState, Message};
 
 use crate::{
-    app::actions::handle_logout,
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
     components::{
         input_section::InputSection, message_popup::MessagePopup, score_table::ScoreTable,
-        team_status::TeamStatus,
+        team_section::TeamSection,
     },
 };
 
@@ -42,6 +40,9 @@ pub fn App() -> Element {
     let title = use_signal(|| None::<String>);
     let is_fullscreen = use_signal(|| false);
     let parsed_puzzles = use_signal(PuzzleSolutions::new);
+    let logout_alert = use_signal(|| false);
+    let delete_alert = use_signal(|| false);
+
     trace!("variables inited");
 
     // side effect handlers
@@ -49,25 +50,6 @@ pub fn App() -> Element {
     hooks::check_auth(auth, message);
     hooks::load_title(title, message);
     hooks::subscribe_stream(teams_state, puzzles);
-
-    let teams = teams_state.read();
-    let ref_puzzles = puzzles.read();
-
-    let solved = teams
-        .iter()
-        .find(|(team, _)| team == &auth_current.username)
-        .map(|(_, solved)| solved);
-
-    let points: u32 = solved
-        .as_ref()
-        .map(|solved| {
-            ref_puzzles
-                .iter()
-                .filter(|(id, _)| solved.contains(id))
-                .map(|(_, value)| *value)
-                .sum()
-        })
-        .unwrap_or(0);
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
@@ -115,19 +97,15 @@ pub fn App() -> Element {
                     } // div: input-section
 
                     if auth_current.joined && !auth_current.is_admin{
-                        div { class: "mt-5",
-                            TeamStatus {
-                                team: auth_current.username.clone(),
-                                points: points,
-                            }
+                        TeamSection {
+                            auth,
+                            message,
+                            logout_alert,
+                            delete_alert,
+                            teams_state,
+                            puzzles,
                         }
-                        div { class: "mt-5",
-                            button { class: "{BUTTON}",
-                                onclick: handle_logout(auth, message), // TODO support wipe logout
-                                cursor: "pointer",
-                                "Kijelentkezés"
-                            }
-                        }
+
                     }
 
                     // Message popup
