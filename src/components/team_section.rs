@@ -2,7 +2,10 @@ use dioxus::prelude::*;
 
 use crate::app::{AuthState, Message, actions::handle_logout, utils::get_points_of};
 use crate::backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles};
-use crate::components::{alert_dialog::*, tailwind_constants::BUTTON, team_status::TeamStatus};
+use crate::components::{
+    alert_dialog::*, tailwind_constants::BUTTON_RED, tailwind_constants::FLASH,
+    team_status::TeamStatus,
+};
 
 #[component]
 pub fn TeamSection(
@@ -29,7 +32,7 @@ pub fn TeamSection(
             }
         }
         div { class: "mt-10",
-            button { class: "{BUTTON}",
+            button { class: "{BUTTON_RED} {FLASH}",
                 onclick: move |_| logout_alert.set(true),
                 cursor: "pointer",
                 "Kijelentkezés"
@@ -51,7 +54,7 @@ pub fn TeamSection(
             }
         }
         div { class: "mt-2",
-            button { class: "{BUTTON}",
+            button { class: "{BUTTON_RED} {FLASH}",
                 onclick: move |_| delete_alert.set(true),
                 cursor: "pointer",
                 "Csapat törlése"

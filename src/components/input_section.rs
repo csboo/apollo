@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::{
     app::{AuthState, Message, actions},
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
-    components::tailwind_constants::{BUTTON, CSV_INPUT, INPUT},
+    components::tailwind_constants::{BUTTON, CSV_INPUT, FLASH, INPUT},
 };
 
 #[component]
@@ -51,7 +51,7 @@ pub fn InputSection(
                 }
             }
 
-            button { class: BUTTON, cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Belépés" }
+            button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Belépés" }
         } else {
         // Submit form
             if !auth_current.is_admin {
@@ -115,9 +115,9 @@ pub fn InputSection(
                     onchange: actions::handle_csv(parsed_puzzles, message),
                 }
 
-                button { class: BUTTON, cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Beállítás" }
+                button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Beállítás" }
             } else {
-                button { class: BUTTON, cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Küldés" }
+                button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Küldés" }
             }
     })
 }
