@@ -32,6 +32,8 @@ pub async fn handle_join(mut auth: Signal<AuthState>, message: Signal<Option<(Me
         if !auth.read().validate_password(message) {
             return;
         }
+        let _ignored_result =
+            crate::backend::endpoints::set_admin_password(auth.read().password.clone()).await;
         auth.write().joined = true;
         return;
     };
