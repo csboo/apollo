@@ -83,10 +83,6 @@ tr {
     color: var(--light);
 }
 
-th {
-    height: 40px;
-}
-
 td {
     min-width: 10rem;
     height: 50px;

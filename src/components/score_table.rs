@@ -19,9 +19,9 @@ pub fn ScoreTable(
             thead {
                 tr {
                     if !puzzles.read().is_empty() || !teams_state.read().is_empty() {
-                        th { class: "text-left pl-2", "." }
+                        th { class: "text-left h-[70px] pl-2", "." }
                         for (id, value) in puzzles.read().iter() {
-                            th {
+                            th { class: "h-[70px]",
                                 span { class: "text-md",
                                     "{id}"
                                 }
