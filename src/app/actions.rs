@@ -29,12 +29,19 @@ pub async fn handle_join(mut auth: Signal<AuthState>, message: Signal<Option<(Me
         auth.write().show_password_prompt = true;
 
         // If password is empty, don't proceed yet
-        if !auth.read().validate_password(message) {
-            return;
+        if auth.read().validate_password(message) {
+            let auth_curr = auth.read().clone();
+            match crate::backend::endpoints::set_admin_password(auth_curr.password).await {
+                Ok(msg) => {
+                    auth.write().joined = true;
+                    popup_normal(message, msg);
+                }
+                Err(e) => popup_error(
+                    message,
+                    format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
+                ),
+            }
         }
-        let _ignored_result =
-            crate::backend::endpoints::set_admin_password(auth.read().password.clone()).await;
-        auth.write().joined = true;
         return;
     };
 
