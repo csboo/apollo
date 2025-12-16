@@ -12,6 +12,7 @@ build:
 	dx bundle ${dx-args}
 
 web-bundle:
+	-rm -r web-apollo.zip target/dx # would bloat otherwise
 	dx bundle --release ${dx-args}
 	cp -r target/dx/apollo/release/web/public .
 	-rm web-apollo.zip
@@ -20,7 +21,7 @@ web-bundle:
 	unzip -l web-apollo.zip
 
 server-build:
-	ulimit -n 1024 # needed on macos for sure
+	@echo 'probably `ulimit -n 1024`' # needed on my mac for sure
 	cargo zigbuild --release --target x86_64-unknown-linux-gnu --no-default-features --features server_state_save,web
 	cp target/x86_64-unknown-linux-gnu/release/apollo apollo-x86_64-linux-gnu
 
