@@ -102,7 +102,7 @@ puzzle-already-solved:
   en: already solved this puzzle
   hu: ezt a feladatot már megoldottad
 puzzle-submit-success:
-  en: all right, succesfully saved your solution!
+  en: all right, successfully saved your solution!
   hu: hurrá, sikeresen elmentettük a megoldásod!
 
 # internal server error

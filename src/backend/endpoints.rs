@@ -101,7 +101,7 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
             .read()
             .await
             .get(&uuid)
-            .or_not_found("nincs előrehaladást, így nem töröljük azt")?
+            .or_not_found("nincs előrehaladás, így nem töröljük azt")?
             .clone();
         info!("a {username:?} csapat előrelhaladása törlésre kerül");
         _ = TEAMS.write().await.remove(&username);
@@ -165,7 +165,7 @@ pub async fn set_solution(
     let hashed_key = check_admin_pwd()?;
     let pwd_matches = argon2::verify_raw(password.as_bytes(), &*SALT, hashed_key, &ARGON2CONF)
         .inspect_err(|e| error!("nem sikerült azonosítani a jelszót: {e}"))
-        .or_internal_server_error("nem sikerült azonosítani jelszót")?;
+        .or_internal_server_error("nem sikerült azonosítani a jelszót")?;
     pwd_matches.or_unauthorized("érvénytelen jelszó")?;
 
     let puzzles_lock = PUZZLES.read().await;
