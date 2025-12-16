@@ -69,7 +69,7 @@ pub fn InputSection(
                         option {
                             cursor: "pointer",
                             value: "{id}",
-                            "{id}. feladat"
+                            "{id}"
                         }
                     }
                 }

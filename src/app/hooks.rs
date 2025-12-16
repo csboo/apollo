@@ -37,7 +37,7 @@ pub fn subscribe_stream(
         let mut stream = crate::backend::endpoints::state_stream().await?;
         while let Some(Ok((new_team_state, new_puzzles))) = stream.next().await {
             let mut puzzles_sorted: Vec<_> = new_puzzles.into_iter().collect();
-            puzzles_sorted.sort();
+            puzzles_sorted.sort_by(|p1, p2| p1.1.cmp(&p2.1).then_with(|| p1.0.cmp(&p2.0)));
 
             let mut teams_sorted: Vec<_> = new_team_state.into_iter().collect();
             teams_sorted.sort_by(|a, b| {
