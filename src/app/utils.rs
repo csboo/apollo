@@ -90,3 +90,37 @@ pub fn get_points_of(team: &(String, SolvedPuzzles), puzzles: Vec<(PuzzleId, Puz
         .map(|(_, value)| *value)
         .sum()
 }
+
+pub fn validate_puzzle_id(puzzle_id: &str, message: Signal<Option<(Message, String)>>) -> bool {
+    match !puzzle_id.is_empty() {
+        true => true,
+        false => {
+            popup_error(message, "a feladat nem lehet üres");
+            false
+        }
+    }
+}
+pub fn validate_puzzle_solution(
+    puzzle_solution: &str,
+    message: Signal<Option<(Message, String)>>,
+) -> bool {
+    match !puzzle_solution.is_empty() {
+        true => true,
+        false => {
+            popup_error(message, "a megoldás nem lehet üres");
+            false
+        }
+    }
+}
+pub fn validate_puzzle_value(
+    puzzle_value: &str,
+    message: Signal<Option<(Message, String)>>,
+) -> bool {
+    match !puzzle_value.is_empty() {
+        true => true,
+        false => {
+            popup_error(message, "az érték nem lehet üres");
+            false
+        }
+    }
+}

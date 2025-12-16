@@ -3,7 +3,10 @@ use dioxus::{prelude::*, signals::Signal};
 use crate::{
     app::{
         models::{AuthState, Message},
-        utils::{parse_puzzle_csv, popup_error, popup_normal},
+        utils::{
+            parse_puzzle_csv, popup_error, popup_normal, validate_puzzle_id,
+            validate_puzzle_solution, validate_puzzle_value,
+        },
     },
     backend::models::{Puzzle, PuzzleSolutions},
 };
@@ -17,8 +20,7 @@ fn check_admin_username(username: String) -> bool {
 
 pub async fn handle_join(mut auth: Signal<AuthState>, message: Signal<Option<(Message, String)>>) {
     let u = auth.read().username.clone();
-    if u.trim().is_empty() {
-        popup_error(message, "A csapatnév mező nem lehet üres");
+    if !auth.read().validate_username(message) {
         return;
     }
 
@@ -27,8 +29,7 @@ pub async fn handle_join(mut auth: Signal<AuthState>, message: Signal<Option<(Me
         auth.write().show_password_prompt = true;
 
         // If password is empty, don't proceed yet
-        if auth.read().password.is_empty() {
-            popup_normal(message, "Adja meg az admin jelszót");
+        if !auth.read().validate_password(message) {
             return;
         }
         auth.write().joined = true;
@@ -39,7 +40,7 @@ pub async fn handle_join(mut auth: Signal<AuthState>, message: Signal<Option<(Me
     match crate::backend::endpoints::auth_state().await {
         Ok(uname) => {
             popup_normal(message, format!("Üdv, {}", uname));
-            auth.write().joined = true;
+            auth.write().joined = true; // TODO auth.reset(_somefield)
             auth.write().password = String::new();
             auth.write().show_password_prompt = false;
         }
@@ -59,6 +60,13 @@ pub async fn handle_user_submit(
 ) {
     let puzzle_current = puzzle_id.read().clone();
     let solution_current = puzzle_solution.read().clone();
+    if !validate_puzzle_id(&puzzle_current, message) {
+        return;
+    }
+    if !validate_puzzle_solution(&solution_current, message) {
+        return;
+    }
+
     match crate::backend::endpoints::submit_solution(puzzle_current, solution_current).await {
         Ok(msg) => {
             popup_normal(message, msg);
@@ -79,9 +87,18 @@ pub async fn handle_admin_submit(
     password_current: String,
     message: Signal<Option<(Message, String)>>,
 ) {
-    // Submit solution - call backend function directly
     match crate::backend::endpoints::set_solution(
         if parsed_puzzles.read().is_empty() {
+            if !validate_puzzle_id(&puzzle_id.read().clone(), message) {
+                return;
+            }
+            if !validate_puzzle_solution(&puzzle_solution.read().clone(), message) {
+                return;
+            }
+            if !validate_puzzle_value(&puzzle_value.read().clone(), message) {
+                return;
+            }
+
             debug!("parsed puzzles is empty, trying from manual values");
             let Ok(value_current) = puzzle_value.read().parse() else {
                 popup_error(message, "Az érték csak szám lehet");
