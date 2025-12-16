@@ -73,7 +73,9 @@ pub(super) mod state_save {
     static STATE_PATH: LazyLock<String> = LazyLock::new(|| {
         let def = String::from("apollo-state.cbor.encrypted"); // WARN: might not exist...
         let path = env::var("APOLLO_STATE_PATH")
-            .inspect_err(|e| warn!("nincs beallitva az állapot mentési helye: {e}"))
+            .inspect_err(|e| {
+                warn!("nincs beállítva az állapot mentési helye (APOLLO_STATE_PATH): {e}")
+            })
             .unwrap_or_else(|_| def.clone());
         if path.is_empty() { def } else { path }
     });
@@ -120,7 +122,7 @@ pub(super) mod state_save {
 
         let decrypted_content = cipher
             .decrypt(&nonce, buf.as_slice())
-            .map_err(|e| format!("nem sikerült visszafejteni a fajlt({encrypted_path:?}), győződj meg róla, hogy ugyanazzal a jelszóval próbálkozol, amivel titkosítva lett: {e}"))?;
+            .map_err(|e| format!("nem sikerült visszafejteni a fájlt({encrypted_path:?}), győződj meg róla, hogy ugyanazzal a jelszóval próbálkozol, amivel titkosítva lett: {e}"))?;
 
         salt.zeroize();
         nonce.zeroize();
@@ -150,7 +152,7 @@ pub(super) mod state_save {
             .map_err(|e| ise(format!("nem sikerült cbor-rá alakítani az állapotot: {e}")))?;
         let encrypted_state = encrypt(&state_buf)
             .await
-            .map_err(|e| ise(format!("nem sikerült titkosítani az állapot: {e}")))?;
+            .map_err(|e| ise(format!("nem sikerült titkosítani az állapotot: {e}")))?;
         tokio::fs::write(&*STATE_PATH, encrypted_state)
             .await
             .map_err(|e| {
@@ -175,7 +177,7 @@ pub(super) mod state_save {
         PUZZLES.write().await.extend(puzzles_state);
         TEAMS.write().await.extend(teams_state);
         USER_IDS.write().await.extend(userid_state);
-        info!("sikeresen betöltöttük az elmentett állapotot fájlból({STATE_PATH:?}) a memóriába");
+        info!("sikeresen betöltöttük az elmentett állapotot a fájlból({STATE_PATH:?}) a memóriába");
         Ok(())
     }
 }

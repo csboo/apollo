@@ -101,7 +101,7 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
             .read()
             .await
             .get(&uuid)
-            .or_not_found("nincs előrehaladást, így nem töröljük azt")?
+            .or_not_found("nincs előrehaladás, így nem töröljük azt")?
             .clone();
         info!("a {username:?} csapat előrelhaladása törlésre kerül");
         _ = TEAMS.write().await.remove(&username);
@@ -123,7 +123,7 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
 
 /// before this, no solution can be set, no state will be loaded
 /// NOTE: might take a while, as it hashes the `password` and loads the state
-/// TODO: don't send raw `password` over the wire, think of the Man In The Mirror...
+/// NOTE: use https
 #[post("/api/set_admin_password")]
 pub async fn set_admin_password(mut password: String) -> Result<String, HttpError> {
     HASHED_PWD
@@ -138,16 +138,15 @@ pub async fn set_admin_password(mut password: String) -> Result<String, HttpErro
         }
     };
 
-    _ = HASHED_PWD.set(hashed_key); // NOTE: safe to ignore, as `is_none`, see above
-
     #[cfg(feature = "server_state_save")]
     if let Err(err) = state_save::load_state(password.as_bytes()).await {
         return HttpError::internal_server_error(format!(
             "nem sikerült betölteni az állapotot: {err}"
         ));
     }
-
     password.zeroize();
+
+    _ = HASHED_PWD.set(hashed_key); // NOTE: safe to ignore, as `is_none`, see above
 
     Ok(String::from(
         "sikeresen beállítottuk a mesterjelszót, kezdődhet a játék!",
@@ -166,7 +165,7 @@ pub async fn set_solution(
     let hashed_key = check_admin_pwd()?;
     let pwd_matches = argon2::verify_raw(password.as_bytes(), &*SALT, hashed_key, &ARGON2CONF)
         .inspect_err(|e| error!("nem sikerült azonosítani a jelszót: {e}"))
-        .or_internal_server_error("nem sikerült azonosítani jelszót")?;
+        .or_internal_server_error("nem sikerült azonosítani a jelszót")?;
     pwd_matches.or_unauthorized("érvénytelen jelszó")?;
 
     let puzzles_lock = PUZZLES.read().await;
