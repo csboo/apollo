@@ -17,6 +17,7 @@ pub async fn event_title() -> Result<String> {
 /// streams current progress of the teams and existing puzzles with their values
 #[get("/api/state")]
 pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), CborEncoding>> {
+    check_admin_pwd()?;
     Ok(Streaming::spawn(|tx| async move {
         while tx.unbounded_send(get_game_state().await).is_ok() {
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
@@ -27,6 +28,7 @@ pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), C
 /// returns username if valid
 #[get("/api/auth_state", cookies: TypedHeader<Cookie>)]
 pub async fn auth_state() -> Result<String, HttpError> {
+    check_admin_pwd()?;
     let uuid = extract_sid_cookie(cookies).await?;
     let username = USER_IDS
         .read()
@@ -53,6 +55,7 @@ pub async fn auth_state() -> Result<String, HttpError> {
 /// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
 #[post("/api/join", cookies: TypedHeader<Cookie>)]
 pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
+    check_admin_pwd()?;
     if let Ok(sent_uuid) = extract_sid_cookie(cookies).await
         && USER_IDS.read().await.contains_key(&sent_uuid)
     {
@@ -90,6 +93,7 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
 /// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
 #[post("/api/logout", cookies: TypedHeader<Cookie>)]
 pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>, HttpError> {
+    check_admin_pwd()?;
     let uuid = extract_sid_cookie(cookies).await?;
 
     if wipe_progress.is_some_and(|sure| sure) {
@@ -159,9 +163,7 @@ pub async fn set_solution(
     password: String,
 ) -> Result<String, HttpError> {
     // submitting as admin
-    let hashed_key = HASHED_PWD
-        .get()
-        .or_forbidden("még nincs beállítva mesterjelszó")?;
+    let hashed_key = check_admin_pwd()?;
     let pwd_matches = argon2::verify_raw(password.as_bytes(), &*SALT, hashed_key, &ARGON2CONF)
         .inspect_err(|e| error!("nem sikerült azonosítani a jelszót: {e}"))
         .or_internal_server_error("nem sikerült azonosítani jelszót")?;
@@ -192,6 +194,7 @@ pub async fn submit_solution(
     puzzle_id: PuzzleId,
     solution: PuzzleSolution,
 ) -> Result<String, HttpError> {
+    check_admin_pwd()?;
     let uuid = extract_sid_cookie(cookies).await?;
     let username = USER_IDS
         .read()

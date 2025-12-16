@@ -28,6 +28,13 @@ pub(super) static HASHED_PWD: OnceLock<Vec<u8>> = OnceLock::new();
 pub(super) static EVENT_TITLE: LazyLock<Result<String, env::VarError>> =
     LazyLock::new(|| env::var("APOLLO_EVENT_TITLE"));
 
+/// check whether admin password was set
+pub(super) fn check_admin_pwd() -> Result<&'static Vec<u8>, HttpError> {
+    HASHED_PWD
+        .get()
+        .or_forbidden("még nincs beállítva mesterjelszó")
+}
+
 /// get a clone of state: `TEAMS` and `PUZZLES`
 pub(super) async fn get_game_state() -> (TeamsState, PuzzlesExisting) {
     let existing_puzzles = PUZZLES
@@ -123,7 +130,14 @@ pub(super) mod state_save {
     }
 
     /// save `PUZZLES` and `TEAMS` state to disk into an encrypted `cbor` file
-    pub async fn save_state() -> Result<(), HttpError> {
+    /// logs errors to server stderr
+    pub async fn save_state() {
+        if let Err(err) = _save_state().await {
+            error!("nem sikerült elmenteni az állapotot: {err}");
+        }
+    }
+
+    async fn _save_state() -> Result<(), HttpError> {
         // internal server error
         let ise = |msg: String| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, msg);
         let teams_state = TEAMS.read().await.clone();
