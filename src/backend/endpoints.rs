@@ -123,7 +123,7 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
 
 /// before this, no solution can be set, no state will be loaded
 /// NOTE: might take a while, as it hashes the `password` and loads the state
-/// TODO: don't send raw `password` over the wire, think of the Man In The Mirror...
+/// NOTE: use https
 #[post("/api/set_admin_password")]
 pub async fn set_admin_password(mut password: String) -> Result<String, HttpError> {
     HASHED_PWD
@@ -138,16 +138,15 @@ pub async fn set_admin_password(mut password: String) -> Result<String, HttpErro
         }
     };
 
-    _ = HASHED_PWD.set(hashed_key); // NOTE: safe to ignore, as `is_none`, see above
-
     #[cfg(feature = "server_state_save")]
     if let Err(err) = state_save::load_state(password.as_bytes()).await {
         return HttpError::internal_server_error(format!(
             "nem sikerült betölteni az állapotot: {err}"
         ));
     }
-
     password.zeroize();
+
+    _ = HASHED_PWD.set(hashed_key); // NOTE: safe to ignore, as `is_none`, see above
 
     Ok(String::from(
         "sikeresen beállítottuk a mesterjelszót, kezdődhet a játék!",
