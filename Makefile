@@ -1,14 +1,12 @@
-APOLLO_STATE_PATH?=apollo-state.cbor.encrypted
 APOLLO_EVENT_TITLE?=hack-a-polo
-APOLLO_MESTER_JELSZO?=Password
 
 dx-args:=@server --server --features server_state_save @client --web
 
 serve:
-	APOLLO_STATE_PATH=${APOLLO_STATE_PATH} APOLLO_EVENT_TITLE=${APOLLO_EVENT_TITLE} APOLLO_MESTER_JELSZO=${APOLLO_MESTER_JELSZO} dx serve ${dx-args}
+	APOLLO_EVENT_TITLE=${APOLLO_EVENT_TITLE} dx serve ${dx-args}
 
 serve-no-state:
-	APOLLO_EVENT_TITLE=${APOLLO_EVENT_TITLE} APOLLO_MESTER_JELSZO=${APOLLO_MESTER_JELSZO} dx serve --web
+	APOLLO_EVENT_TITLE=${APOLLO_EVENT_TITLE} dx serve --web
 
 build:
 	dx bundle ${dx-args}
