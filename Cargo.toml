@@ -5,6 +5,8 @@ authors = [
   "csboo <csongiboo@gmail.com>",
   "Jeromos Kovacs <iitsnotme214@proton.me>"
 ]
+description = "a simple hackathon progress tracking app"
+repository = "https://github.com/csboo/apollo"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -34,3 +36,6 @@ server = [
 ]
 # save server state
 server_state_save = ["server", "dep:ciborium"]
+
+[build-dependencies]
+humantime = "2.3.0"
