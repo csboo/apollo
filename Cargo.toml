@@ -1,7 +1,10 @@
 [package]
 name = "apollo"
 version = "0.1.0"
-authors = ["csboo <csongiboo@gmail.com>", "Jeromos Kovacs <iitsnotme214@proton.me>"]
+authors = [
+  "csboo <csongiboo@gmail.com>",
+  "Jeromos Kovacs <iitsnotme214@proton.me>"
+]
 description = "a simple hackathon progress tracking app"
 repository = "https://github.com/csboo/apollo"
 edition = "2024"
@@ -26,9 +29,16 @@ default = ["web"]
 web = ["dioxus/web", "dep:gloo-timers"]
 desktop = ["dioxus/desktop", "dep:tokio"]
 # mobile = ["dioxus/mobile"]
-server = ["dioxus/server", "dep:tokio", "dep:secrecy", "dep:uuid"]
+server = [
+  "dioxus/server",
+  "dep:tokio",
+  "dep:secrecy",
+  "dep:uuid",
+  "dep:chacha20poly1305",
+  "dep:rust-argon2"
+]
 # save server state
-server_state_save = ["server", "dep:ciborium", "dep:chacha20poly1305", "dep:rust-argon2"]
+server_state_save = ["server", "dep:ciborium"]
 
 [build-dependencies]
 humantime = "2.3.0"
