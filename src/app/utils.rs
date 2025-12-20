@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use csv::ReaderBuilder;
-use dioxus::prelude::*;
 use dioxus_primitives::toast::{ToastOptions, Toasts};
 
 use crate::backend::models::{Puzzle, PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles};

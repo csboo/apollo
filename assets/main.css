@@ -68,7 +68,7 @@
 
 body {
     background-color: var(--bg);
-    color: var(--light);
+    color: var(--light1);
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     margin: 20px;
 }
@@ -80,7 +80,7 @@ td,
 tr {
     border: solid 2px var(--middle);
     border-collapse: collapse;
-    color: var(--light);
+    color: var(--light1);
 }
 
 td {
