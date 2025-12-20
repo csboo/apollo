@@ -6,3 +6,4 @@ pub mod score_table;
 pub mod tailwind_constants;
 pub mod team_section;
 pub mod team_status;
+pub mod toast;

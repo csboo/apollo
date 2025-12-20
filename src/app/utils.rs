@@ -1,15 +1,12 @@
+use std::time::Duration;
+
 use csv::ReaderBuilder;
 use dioxus::prelude::*;
+use dioxus_primitives::toast::{ToastOptions, Toasts};
 
-use crate::{
-    app::models::Message,
-    backend::models::{Puzzle, PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
-};
+use crate::backend::models::{Puzzle, PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles};
 
-pub fn parse_puzzle_csv(
-    csv_text: &str,
-    message: Signal<Option<(Message, String)>>,
-) -> PuzzleSolutions {
+pub fn parse_puzzle_csv(csv_text: &str, toast_api: Toasts) -> PuzzleSolutions {
     let mut rdr = ReaderBuilder::new()
         .has_headers(true)
         .from_reader(csv_text.as_bytes());
@@ -20,32 +17,32 @@ pub fn parse_puzzle_csv(
     for result in rdr.records() {
         let record = match result {
             Ok(r) => r,
-            Err(e) => {
-                warn!("skipping invalid CSV row: {}", e);
+            Err(_e) => {
+                // warn!("skipping invalid CSV row: {}", e);
                 volte = true;
                 continue;
             }
         };
         let Some(id) = record.get(0) else {
-            warn!("invalid 'id' field in CSV row: {:?}", &record); // TODO dont log value ever 
+            // warn!("invalid 'id' field in CSV row: {:?}", &record); // TODO dont log value ever
             volte = true;
             continue;
         };
         let Some(solution) = record.get(1) else {
-            warn!("invalid 'solution' field in CSV row: {:?}", &record);
+            // warn!("invalid 'solution' field in CSV row: {:?}", &record);
             volte = true;
             continue;
         };
         let Some(value) = record.get(2) else {
-            warn!("invalid 'value' field in CSV row: {:?}", &record);
+            // warn!("invalid 'value' field in CSV row: {:?}", &record);
             volte = true;
             continue;
         };
         let Ok(value_num) = value.parse::<u32>() else {
-            warn!(
-                "value of field 'value' is not a number in CSV row: {:?}",
-                &record
-            );
+            // warn!(
+            //     "value of field 'value' is not a number in CSV row: {:?}",
+            //     &record
+            // );
             volte = true;
             continue;
         };
@@ -61,7 +58,7 @@ pub fn parse_puzzle_csv(
 
     if volte {
         popup_error(
-            message,
+            toast_api,
             "néhány sort nem sikerült betölteni, nézd meg a konzolt",
         );
     }
@@ -69,18 +66,24 @@ pub fn parse_puzzle_csv(
     puzzles
 }
 
-pub fn popup_error(
-    mut signal_message: Signal<Option<(Message, String)>>,
-    text: impl std::fmt::Display,
-) {
-    signal_message.set(Some((Message::MsgErr, text.to_string())));
+pub fn popup_error(toast_api: Toasts, text: impl std::fmt::Display) {
+    toast_api.error(
+        "".to_string(),
+        ToastOptions::new()
+            .description(text)
+            .duration(Duration::from_secs(3))
+            .permanent(false),
+    );
 }
 
-pub fn popup_normal(
-    mut signal_message: Signal<Option<(Message, String)>>,
-    text: impl std::fmt::Display,
-) {
-    signal_message.set(Some((Message::MsgNorm, text.to_string())));
+pub fn popup_normal(toast_api: Toasts, text: impl std::fmt::Display) {
+    toast_api.info(
+        "".to_string(),
+        ToastOptions::new()
+            .description(text)
+            .duration(Duration::from_secs(3))
+            .permanent(false),
+    );
 }
 
 pub fn get_points_of(team: &(String, SolvedPuzzles), puzzles: Vec<(PuzzleId, PuzzleValue)>) -> u32 {
@@ -91,35 +94,29 @@ pub fn get_points_of(team: &(String, SolvedPuzzles), puzzles: Vec<(PuzzleId, Puz
         .sum()
 }
 
-pub fn validate_puzzle_id(puzzle_id: &str, message: Signal<Option<(Message, String)>>) -> bool {
+pub fn validate_puzzle_id(puzzle_id: &str, toast_api: Toasts) -> bool {
     match !puzzle_id.is_empty() {
         true => true,
         false => {
-            popup_error(message, "a feladat nem lehet üres");
+            popup_error(toast_api, "a feladat nem lehet üres");
             false
         }
     }
 }
-pub fn validate_puzzle_solution(
-    puzzle_solution: &str,
-    message: Signal<Option<(Message, String)>>,
-) -> bool {
+pub fn validate_puzzle_solution(puzzle_solution: &str, toast_api: Toasts) -> bool {
     match !puzzle_solution.is_empty() {
         true => true,
         false => {
-            popup_error(message, "a megoldás nem lehet üres");
+            popup_error(toast_api, "a megoldás nem lehet üres");
             false
         }
     }
 }
-pub fn validate_puzzle_value(
-    puzzle_value: &str,
-    message: Signal<Option<(Message, String)>>,
-) -> bool {
+pub fn validate_puzzle_value(puzzle_value: &str, toast_api: Toasts) -> bool {
     match !puzzle_value.is_empty() {
         true => true,
         false => {
-            popup_error(message, "az érték nem lehet üres");
+            popup_error(toast_api, "az érték nem lehet üres");
             false
         }
     }

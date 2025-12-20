@@ -1,4 +1,4 @@
-use dioxus::signals::Signal;
+use dioxus_primitives::toast::Toasts;
 
 use crate::app::utils::popup_error;
 
@@ -12,35 +12,29 @@ pub struct AuthState {
 }
 
 impl AuthState {
-    pub fn validate_username(&self, message: Signal<Option<(Message, String)>>) -> bool {
+    pub fn validate_username(&self, toast_api: Toasts) -> bool {
         if self.username.is_empty() {
-            popup_error(message, "A csapatnév nem lehet üres");
+            popup_error(toast_api, "A csapatnév nem lehet üres");
             return false;
         }
         true
     }
-    pub fn validate_password(&self, message: Signal<Option<(Message, String)>>) -> bool {
+    pub fn validate_password(&self, toast_api: Toasts) -> bool {
         if self.is_admin && self.password.is_empty() {
-            popup_error(message, "A jelszó nem lehet üres");
+            popup_error(toast_api, "A jelszó nem lehet üres");
             return false;
         }
         true
     }
 
-    pub fn validate(&self, message: Signal<Option<(Message, String)>>) -> bool {
-        if !self.validate_username(message) {
+    pub fn validate(&self, toast_api: Toasts) -> bool {
+        if !self.validate_username(toast_api) {
             return false;
         };
-        if !self.validate_password(message) {
+        if !self.validate_password(toast_api) {
             return false;
         };
 
         true
     }
-}
-
-#[derive(Clone, PartialEq)]
-pub enum Message {
-    MsgNorm,
-    MsgErr,
 }

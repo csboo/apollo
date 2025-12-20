@@ -1,7 +1,8 @@
 use dioxus::prelude::*;
+use dioxus_primitives::toast::use_toast;
 
 use crate::{
-    app::{AuthState, Message, actions},
+    app::{AuthState, actions},
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
     components::tailwind_constants::{BUTTON, CSV_INPUT, FLASH, INPUT},
 };
@@ -9,7 +10,6 @@ use crate::{
 #[component]
 pub fn InputSection(
     auth: Signal<AuthState>,
-    message: Signal<Option<(Message, String)>>,
     puzzle_id: Signal<String>,
     puzzle_value: Signal<String>,
     puzzle_solution: Signal<String>,
@@ -20,6 +20,7 @@ pub fn InputSection(
     let auth_current = auth.read().clone();
     let teams = teams_state.read();
     let ref_puzzles = puzzles.read();
+    let toast_api = use_toast();
 
     let solved = teams
         .iter()
@@ -51,7 +52,7 @@ pub fn InputSection(
                 }
             }
 
-            button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Belépés" }
+            button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_action(auth, toast_api, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Belépés" }
         } else {
         // Submit form
             if !auth_current.is_admin {
@@ -112,12 +113,12 @@ pub fn InputSection(
                     r#type: "file",
                     r#accept: ".csv",
                     cursor: "pointer",
-                    onchange: actions::handle_csv(parsed_puzzles, message),
+                    onchange: actions::handle_csv(parsed_puzzles, toast_api),
                 }
 
-                button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Beállítás" }
+                button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_action(auth, toast_api, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Beállítás" }
             } else {
-                button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_action(auth, message, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Küldés" }
+                button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_action(auth, toast_api, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles), "Küldés" }
             }
     })
 }

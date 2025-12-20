@@ -1,6 +1,7 @@
 use dioxus::prelude::*;
+use dioxus_primitives::toast::use_toast;
 
-use crate::app::{AuthState, Message, actions::handle_logout, utils::get_points_of};
+use crate::app::{AuthState, actions::handle_logout, utils::get_points_of};
 use crate::backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles};
 use crate::components::{
     alert_dialog::*, tailwind_constants::BUTTON_RED, tailwind_constants::FLASH,
@@ -10,13 +11,13 @@ use crate::components::{
 #[component]
 pub fn TeamSection(
     auth: Signal<AuthState>,
-    message: Signal<Option<(Message, String)>>,
     mut logout_alert: Signal<bool>,
     mut delete_alert: Signal<bool>,
     mut teams_state: Signal<Vec<(String, SolvedPuzzles)>>,
     puzzles: Signal<Vec<(PuzzleId, PuzzleValue)>>,
 ) -> Element {
     let auth_current = auth.read().clone();
+    let toast_api = use_toast();
     let points = teams_state
         .read()
         .iter()
@@ -48,7 +49,7 @@ pub fn TeamSection(
                     }
                     AlertDialogActions {
                         AlertDialogCancel { "Mégsem" }
-                        AlertDialogAction { on_click: handle_logout(auth, message, false), "Kilépés" }
+                        AlertDialogAction { on_click: handle_logout(auth, toast_api, false), "Kilépés" }
                     }
                 }
             }
@@ -71,7 +72,7 @@ pub fn TeamSection(
                     }
                     AlertDialogActions {
                         AlertDialogCancel { "Mégsem" }
-                        AlertDialogAction { on_click: handle_logout(auth, message, true), "Csapat Törlése" }
+                        AlertDialogAction { on_click: handle_logout(auth, toast_api, true), "Csapat Törlése" }
                     }
                 }
             }
