@@ -10,6 +10,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  TIP_RELEASE: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+  TAG_RELEASE: ${{ github.ref_type == 'tag' }}
 
 jobs:
   check-test-build:
@@ -66,9 +68,9 @@ jobs:
       - name: Set build mode
         shell: bash
         run: |
-          if [ "${{github.ref_type}}" == "tag" ]; then
+          if [ "${{ env.TIP_RELEASE || env.TAG_RELEASE }}" == "true" ]; then
             echo "BMODE=release">>"$GITHUB_ENV"
-            echo "PROFILE=--release">>"$GITHUB_ENV"
+            echo "BPROF=--release">>"$GITHUB_ENV"
           else
             echo "BMODE=debug">>"$GITHUB_ENV"
           fi
@@ -77,8 +79,7 @@ jobs:
         shell: bash
         run: |
           rm -r target/dist || echo "don't worry, just deleting cache, would bloat otherwise"
-          # note: don't quote profile, it shall be empty maybe
-          dx bundle --out-dir=target/dist --verbose $PROFILE @server --no-default-features --features server_state_save --target ${{ matrix.target }}
+          dx bundle --out-dir=target/dist --verbose ${{env.BPROF}} @server --no-default-features --features server_state_save --target ${{ matrix.target }}
           cd target/dist
           # rename to include platform
           mv "apollo${{ matrix.ext }}" apollo-${{ matrix.target }}${{ matrix.ext }}
@@ -88,32 +89,68 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: apollo-${{ matrix.target }}
+          name: apollo-web-${{ matrix.target }}
           path: |
-           target/dist/apollo-*
-           target/dist/public/
+            target/dist/apollo-*
+            target/dist/public/
 
-  auto-release:
+  tag-release:
     name: Release on tag push
     runs-on: ubuntu-slim
+    # note: can't reuse env.TAG_RELEASE, GHA is stupid
     if: github.ref_type == 'tag'
     needs: check-test-build
     steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v7
         with:
           # destination
-          path: target/release-artifacts
+          path: release-artifacts
           merge-multiple: true
 
       - name: What's up?
-        run: tree target/release-artifacts # beautiful!
+        run: tree release-artifacts # beautiful!
 
       - name: Create a GitHub release
         uses: softprops/action-gh-release@v2
         with:
           # draft: true
           generate_release_notes: true
-          files: target/release-artifacts/*
+          files: release-artifacts/*
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+
+  tip-release:
+    name: Release tip on push to main
+    runs-on: ubuntu-slim
+    # note: can't reuse env.TIP_RELEASE, GHA is stupid
+    if: github.event_name == 'push' && github.ref_name == 'main'
+    needs: check-test-build
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download prebuilt artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Generate release notes
+        run: |
+          tree release-artifacts/
+          echo "From commit: $(git rev-parse --short HEAD)" > release-artifacts/RELEASE.md
+          echo "Generated on: $(date -u +"%Y-%m-%d %H:%M") UTC" >> release-artifacts/RELEASE.md
+          cat release-artifacts/RELEASE.md
+
+      - name: Update the tip tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag --force tip && git push --force origin tag tip
+
+      - name: Update the draft tip release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          files: release-artifacts/*
+          tag_name: tip
+          name: Tip Build
+          body_path: dist/RELEASE.md
