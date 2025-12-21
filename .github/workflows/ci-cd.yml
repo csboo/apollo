@@ -21,11 +21,7 @@ jobs:
           - { os: "macos-latest", target: "aarch64-apple-darwin" }
           - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu" }
           - { os: "ubuntu-24.04-arm", target: "aarch64-unknown-linux-gnu" }
-          - {
-              os: "windows-latest",
-              target: "x86_64-pc-windows-msvc",
-              ext: ".exe",
-            }
+          - { os: "windows-latest", target: "x86_64-pc-windows-msvc" }
 
     runs-on: ${{ matrix.os }}
 
@@ -68,7 +64,7 @@ jobs:
       - name: Set build mode
         shell: bash
         run: |
-          if [ "${{ env.TIP_RELEASE || env.TAG_RELEASE }}" == "true" ]; then
+          if [ "$TAG_RELEASE" == "true" ] || [ "$TIP_RELEASE" == "true" ]; then
             echo "BMODE=release">>"$GITHUB_ENV"
             echo "BPROF=--release">>"$GITHUB_ENV"
           else
@@ -78,21 +74,21 @@ jobs:
       - name: Build in ${{env.BMODE}} mode and prepare artifacts
         shell: bash
         run: |
-          rm -r target/dist || echo "don't worry, just deleting cache, would bloat otherwise"
-          dx bundle --out-dir=target/dist --verbose ${{env.BPROF}} @server --no-default-features --features server_state_save --target ${{ matrix.target }}
+          rm -r target/dist target/dx || echo "don't worry, just deleting cache, would bloat otherwise"
+          dx bundle --out-dir=target/dist --debug-symbols=false --verbose ${{env.BPROF}} \
+            @server --no-default-features --features server_state_save --target ${{ matrix.target }} --server \
+            @client --web
           cd target/dist
           # rename to include platform
-          mv "apollo${{ matrix.ext }}" apollo-${{ matrix.target }}${{ matrix.ext }}
-          tree . || ls -la .
+          tar -cvf apollo-web-${{ matrix.target }}.tar apollo public/
+          tar -tf apollo-web-*.tar
 
       # note: should we only once upload `public/` ?
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         with:
           name: apollo-web-${{ matrix.target }}
-          path: |
-            target/dist/apollo-*
-            target/dist/public/
+          path: target/dist/apollo-web-*.tar
 
   tag-release:
     name: Release on tag push
