@@ -5,8 +5,8 @@ use dioxus::prelude::*;
 use {
     super::logic::*,
     dioxus::fullstack::{Cookie, TypedHeader},
-    secrecy::zeroize::Zeroize,
     uuid::Uuid,
+    zeroize::Zeroize,
 };
 
 #[get("/api/event_title")]
@@ -126,9 +126,8 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
 /// NOTE: use https
 #[post("/api/set_admin_password")]
 pub async fn set_admin_password(mut password: String) -> Result<String, HttpError> {
-    HASHED_PWD
-        .get()
-        .is_none()
+    check_admin_pwd()
+        .is_err()
         .or_forbidden("már be van állítva a mesterjelszó")?;
 
     let hashed_key = match argon2::hash_raw(password.as_bytes(), &*SALT, &ARGON2CONF) {
