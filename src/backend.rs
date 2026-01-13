@@ -1,7 +1,9 @@
-use dioxus::prelude::*;
+#![deny(clippy::unwrap_used)]
+#![forbid(unsafe_code)]
 
-/// Echo the user input on the server.
-#[post("/api/echo")]
-pub async fn echo_server(input: String) -> Result<String, ServerFnError> {
-    Ok(input)
-}
+pub mod models;
+
+#[cfg(feature = "server")]
+mod logic;
+
+pub mod endpoints;
