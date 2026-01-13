@@ -74,7 +74,7 @@ pub(super) mod state_save {
         let def = String::from("apollo-state.cbor.encrypted"); // WARN: might not exist...
         let path = env::var("APOLLO_STATE_PATH")
             .inspect_err(|e| {
-                warn!("nincs beállítva az állapot mentési helye (APOLLO_STATE_PATH): {e}")
+                warn!("nincs beállítva az állapot mentési helye (APOLLO_STATE_PATH): {e}, alapértelmezettet használunk ({def:?})")
             })
             .unwrap_or_else(|_| def.clone());
         if path.is_empty() { def } else { path }

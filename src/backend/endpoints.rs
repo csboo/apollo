@@ -158,13 +158,14 @@ pub async fn set_admin_password(mut password: String) -> Result<String, HttpErro
 #[post("/api/set_solution")]
 pub async fn set_solution(
     puzzle_solutions: PuzzleSolutions,
-    password: String,
+    mut password: String,
 ) -> Result<String, HttpError> {
     // submitting as admin
     let hashed_key = check_admin_pwd()?;
     let pwd_matches = argon2::verify_raw(password.as_bytes(), &*SALT, hashed_key, &ARGON2CONF)
         .inspect_err(|e| error!("nem sikerült azonosítani a jelszót: {e}"))
         .or_internal_server_error("nem sikerült azonosítani a jelszót")?;
+    password.zeroize();
     pwd_matches.or_unauthorized("érvénytelen jelszó")?;
 
     let puzzles_lock = PUZZLES.read().await;
@@ -214,7 +215,7 @@ pub async fn submit_solution(
 
     let team_solved = teams_lock
         .get_mut(&username)
-        .or_internal_server_error("ezt a problémát már régebben meg kellett volna oldani...")?;
+        .or_internal_server_error("nincs ehhez a csapatnévhez előrehaladás rendelve")?;
 
     team_solved
         .insert(puzzle_id)
