@@ -4,6 +4,8 @@ mod backend;
 fn main() {
     dioxus::logger::initialize_default();
 
+    eprintln!("{}", env!("BANNER").replace(r"\n", "\n").trim_matches('"')); // had to be escaped, see build.rs
+
     #[cfg(feature = "server")]
     dioxus::serve(|| async move {
         use dioxus::cli_config::fullstack_address_or_localhost as dx_server_addr;
