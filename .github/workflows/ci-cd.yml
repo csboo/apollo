@@ -12,6 +12,7 @@ env:
   CARGO_TERM_COLOR: always
   TIP_RELEASE: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
   TAG_RELEASE: ${{ github.ref_type == 'tag' }}
+  CARGO_HACK_FEAT_ARGS: --feature-powerset --mutually-exclusive-features desktop,mobile --mutually-exclusive-features desktop,web --mutually-exclusive-features web,mobile
 
 jobs:
   check-test-build:
@@ -45,17 +46,17 @@ jobs:
       - name: install rust target
         run: rustup target add ${{ matrix.target }}
 
-      - name: Check for errors with each combination of features
+      - name: Check for errors with each reasonable combination of features
         run: |
           touch assets/tailwind.css # asset! needs this...
-          cargo hack check --feature-powerset --no-dev-deps --target ${{ matrix.target }} --verbose
+          cargo hack check ${{ env.CARGO_HACK_FEAT_ARGS }} --no-dev-deps --target ${{ matrix.target }} --verbose
 
       # TODO: write tests...
-      # - name: Run tests with each combination of features
-      #   run: cargo hack test --feature-powerset --target ${{ matrix.target }} --verbose
+      # - name: Run tests with each reasonable combination of features
+      #   run: cargo hack test ${{ env.CARGO_HACK_FEAT_ARGS }} --target ${{ matrix.target }} --verbose
       - name: Check code with clippy, for each combination of features
         run: |
-          cargo hack clippy --feature-powerset --target ${{ matrix.target }} --all-targets --verbose
+          cargo hack clippy ${{ env.CARGO_HACK_FEAT_ARGS }} --target ${{ matrix.target }} --all-targets --verbose
           rm assets/tailwind.css # will be properly generated when needed
 
       - name: Check code formatting
