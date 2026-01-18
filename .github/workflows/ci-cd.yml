@@ -22,7 +22,11 @@ jobs:
           - { os: "macos-latest", target: "aarch64-apple-darwin" }
           - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu" }
           - { os: "ubuntu-24.04-arm", target: "aarch64-unknown-linux-gnu" }
-          - { os: "windows-latest", target: "x86_64-pc-windows-msvc" }
+          - {
+              os: "windows-latest",
+              target: "x86_64-pc-windows-msvc",
+              extension: ".exe",
+            }
 
     runs-on: ${{ matrix.os }}
 
@@ -80,8 +84,10 @@ jobs:
             @server --no-default-features --features server_state_save --target ${{ matrix.target }} --server \
             @client --web
           cd target/dist
+          # rename to include optional extension
+          mv apollo apollo${{ matrix.extension }} || echo "same name, not moving"
           # rename to include platform
-          tar -cvf apollo-web-${{ matrix.target }}.tar apollo public/
+          tar -cvf apollo-web-${{ matrix.target }}.tar apollo${{ matrix.extension }} public/
           tar -tf apollo-web-*.tar
 
       # note: should we only once upload `public/` ?
