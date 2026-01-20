@@ -13,6 +13,7 @@ env:
   TIP_RELEASE: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
   TAG_RELEASE: ${{ github.ref_type == 'tag' }}
   CARGO_HACK_FEAT_ARGS: --feature-powerset --mutually-exclusive-features desktop,mobile --mutually-exclusive-features desktop,web --mutually-exclusive-features web,mobile
+  tip_release_path: release-artifacts/RELEASE.md
 
 jobs:
   check-test-build:
@@ -139,9 +140,9 @@ jobs:
       - name: Generate release notes
         run: |
           tree release-artifacts/
-          echo "From commit: $(git rev-parse --short HEAD)" > release-artifacts/RELEASE.md
-          echo "Generated on: $(date -u +"%Y-%m-%d %H:%M") UTC" >> release-artifacts/RELEASE.md
-          cat release-artifacts/RELEASE.md
+          echo "From commit: $(git rev-parse --short HEAD)" > ${{ env.tip_release_path }}
+          echo "Generated on: $(date -u +"%Y-%m-%d %H:%M") UTC" >> ${{ env.tip_release_path }}
+          cat ${{ env.tip_release_path }}
 
       - name: Update the tip tag
         run: |
@@ -156,4 +157,4 @@ jobs:
           files: release-artifacts/*
           tag_name: tip
           name: Tip Build
-          body_path: dist/RELEASE.md
+          body_path: ${{ env.tip_release_path }}
