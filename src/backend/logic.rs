@@ -57,14 +57,14 @@ pub(super) async fn extract_sid_cookie(cookies: TypedHeader<Cookie>) -> Result<U
 
 #[cfg(feature = "server_state_save")]
 pub(super) mod state_save {
-    use super::{HASHED_PWD, PUZZLES, SALT, TEAMS, Teams, USER_IDS};
+    use super::{PUZZLES, SALT, TEAMS, Teams, USER_IDS, check_admin_pwd};
     use crate::backend::models::*;
     use chacha20poly1305::aead::{Aead, Nonce, OsRng};
     use chacha20poly1305::{AeadCore, KeyInit, XChaCha20Poly1305};
     use dioxus::prelude::*;
-    use secrecy::zeroize::Zeroize; // TODO: either deal with secrecy, or use zeroize itself
     use std::{env, path::Path, sync::LazyLock};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    use zeroize::Zeroize;
 
     type Res<T> = Result<T, Box<dyn std::error::Error>>;
     /// state that's stored on disk
@@ -74,14 +74,14 @@ pub(super) mod state_save {
         let def = String::from("apollo-state.cbor.encrypted"); // WARN: might not exist...
         let path = env::var("APOLLO_STATE_PATH")
             .inspect_err(|e| {
-                warn!("nincs beállítva az állapot mentési helye (APOLLO_STATE_PATH): {e}")
+                warn!("nincs beállítva az állapot mentési helye (APOLLO_STATE_PATH): {e}, alapértelmezettet használunk ({def:?})")
             })
             .unwrap_or_else(|_| def.clone());
         if path.is_empty() { def } else { path }
     });
 
     async fn encrypt(raw_content: &[u8]) -> Res<Vec<u8>> {
-        let hashed_key = HASHED_PWD.get().ok_or("nincs még beállítva mesterjelszó")?;
+        let hashed_key = check_admin_pwd()?;
         let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
         let cipher = XChaCha20Poly1305::new(hashed_key.as_slice().into());
         let encrypted_content = cipher

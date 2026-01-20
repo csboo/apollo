@@ -17,22 +17,23 @@ dioxus-primitives = { git = "https://github.com/DioxusLabs/components", version 
 gloo-timers = { version = "0.3.0", features = ["futures"], optional = true }
 chacha20poly1305 = { version = "0.10.1", optional = true }
 ciborium = { version = "0.2.2", optional = true }
-dioxus = { version = "0.7.2", features = ["fullstack"] }
+dioxus = { version = "0.7.3", features = ["fullstack"] }
 # note: argon2 crate worth bearing in mind
 rust-argon2 = { version = "3.0.0", optional = true }
-secrecy = { version = "0.10.3", optional = true }
-tokio = { version = "1.48.0", optional = true }
+tokio = { version = "1.49.0", optional = true }
 uuid = { version = "1.19.0", features = ["v4", "serde"], optional = true }
+zeroize = { version = "1.8.2", optional = true }
 
 [features]
 default = ["web"]
 web = ["dioxus/web", "dep:gloo-timers"]
 desktop = ["dioxus/desktop", "dep:tokio"]
+# desktop = ["dioxus/desktop"]
 # mobile = ["dioxus/mobile"]
 server = [
   "dioxus/server",
   "dep:tokio",
-  "dep:secrecy",
+  "dep:zeroize",
   "dep:uuid",
   "dep:chacha20poly1305",
   "dep:rust-argon2"

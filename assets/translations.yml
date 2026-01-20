@@ -43,7 +43,7 @@ nonce-read-err:
 decryption-err:
   en: "error decrypting file({$path}), make sure you're trying to decrypt it with the same password that was used for it's encryption: {$error}"
   hu: "nem sikerült visszafejteni a fajlt({$path}), győződj meg róla, hogy ugyanazzal a jelszóval próbálkozol, amivel titkosítva lett: {$error}"
-state-ser-err:
+state-serialisation-err:
   en: "couldn't serialize state to cbor: {$error}"
   hu: "nem sikerült cbor-rá alakítani az állapotot: {$error}"
 state-encryption-err:
