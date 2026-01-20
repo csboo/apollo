@@ -31,11 +31,11 @@ repo: {}
         env!("CARGO_PKG_NAME").to_uppercase(),
         env!("CARGO_PKG_DESCRIPTION"),
         env!("CARGO_PKG_VERSION"),
-        env::var("PROFILE").unwrap(),
-        env::var("TARGET").unwrap(),
+        env::var("PROFILE").unwrap_or_else(|_| String::from("<unknown>")),
+        env::var("TARGET").unwrap_or_else(|_| String::from("<unknown>")),
         humantime::format_rfc3339_seconds(SystemTime::now()),
         git_commit_hash.trim(),
-        env::var("CARGO_CFG_FEATURE").unwrap(),
+        env::var("CARGO_CFG_FEATURE").unwrap_or_else(|_| String::from("<unknown>")),
         env!("CARGO_PKG_REPOSITORY"),
     );
 
