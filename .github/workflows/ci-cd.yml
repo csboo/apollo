@@ -1,0 +1,159 @@
+name: Check for errors, clippy, format, test, build and release if necessary
+
+on:
+  push:
+    branches: ["main"]
+    tags: ["v*.*.*"]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+env:
+  CARGO_TERM_COLOR: always
+  TIP_RELEASE: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+  TAG_RELEASE: ${{ github.ref_type == 'tag' }}
+  CARGO_HACK_FEAT_ARGS: --feature-powerset --mutually-exclusive-features desktop,mobile --mutually-exclusive-features desktop,web --mutually-exclusive-features web,mobile
+
+jobs:
+  check-test-build:
+    strategy:
+      matrix:
+        include:
+          - { os: "macos-latest", target: "aarch64-apple-darwin" }
+          - { os: "ubuntu-latest", target: "x86_64-unknown-linux-gnu" }
+          - { os: "ubuntu-24.04-arm", target: "aarch64-unknown-linux-gnu" }
+          - {
+              os: "windows-latest",
+              target: "x86_64-pc-windows-msvc",
+              extension: ".exe",
+            }
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - uses: davidlattimore/wild-action@latest
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hack,dioxus-cli
+
+      - name: install dx deps
+        if: contains(matrix.os, 'ubuntu')
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev lld
+          version: latest # could be anything
+
+      - name: install rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Check for errors with each reasonable combination of features
+        run: |
+          touch assets/tailwind.css # asset! needs this...
+          cargo hack check ${{ env.CARGO_HACK_FEAT_ARGS }} --no-dev-deps --target ${{ matrix.target }} --verbose
+
+      # TODO: write tests...
+      # - name: Run tests with each reasonable combination of features
+      #   run: cargo hack test ${{ env.CARGO_HACK_FEAT_ARGS }} --target ${{ matrix.target }} --verbose
+      - name: Check code with clippy, for each combination of features
+        run: |
+          cargo hack clippy ${{ env.CARGO_HACK_FEAT_ARGS }} --target ${{ matrix.target }} --all-targets --verbose
+          rm assets/tailwind.css # will be properly generated when needed
+
+      - name: Check code formatting
+        run: cargo fmt --all --check --verbose
+
+      - name: Set build mode
+        shell: bash
+        run: |
+          if [ "$TAG_RELEASE" == "true" ] || [ "$TIP_RELEASE" == "true" ]; then
+            echo "BMODE=release">>"$GITHUB_ENV"
+            echo "BPROF=--release">>"$GITHUB_ENV"
+          else
+            echo "BMODE=debug">>"$GITHUB_ENV"
+          fi
+
+      - name: Build in ${{env.BMODE}} mode and prepare artifacts
+        shell: bash
+        run: |
+          rm -r target/dist target/dx || echo "don't worry, just deleting cache, would bloat otherwise"
+          dx bundle --out-dir=target/dist --debug-symbols=false --verbose ${{env.BPROF}} \
+            @server --no-default-features --features server_state_save --target ${{ matrix.target }} --server \
+            @client --web
+          cd target/dist
+          # rename to include optional extension
+          mv apollo apollo${{ matrix.extension }} || echo "same name, not moving"
+          # rename to include platform
+          tar -cvf apollo-web-${{ matrix.target }}.tar apollo${{ matrix.extension }} public/
+          tar -tf apollo-web-*.tar
+
+      # note: should we only once upload `public/` ?
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: apollo-web-${{ matrix.target }}
+          path: target/dist/apollo-web-*.tar
+
+  tag-release:
+    name: Release on tag push
+    runs-on: ubuntu-slim
+    # note: can't reuse env.TAG_RELEASE, GHA is stupid
+    if: github.ref_type == 'tag'
+    needs: check-test-build
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          # destination
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: What's up?
+        run: tree release-artifacts # beautiful!
+
+      - name: Create a GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          # draft: true
+          generate_release_notes: true
+          files: release-artifacts/*
+          prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+
+  tip-release:
+    name: Release tip on push to main
+    runs-on: ubuntu-slim
+    # note: can't reuse env.TIP_RELEASE, GHA is stupid
+    if: github.event_name == 'push' && github.ref_name == 'main'
+    needs: check-test-build
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download prebuilt artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Generate release notes
+        run: |
+          tree release-artifacts/
+          echo "From commit: $(git rev-parse --short HEAD)" > release-artifacts/RELEASE.md
+          echo "Generated on: $(date -u +"%Y-%m-%d %H:%M") UTC" >> release-artifacts/RELEASE.md
+          cat release-artifacts/RELEASE.md
+
+      - name: Update the tip tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag --force tip && git push --force origin tag tip
+
+      - name: Update the draft tip release
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          files: release-artifacts/*
+          tag_name: tip
+          name: Tip Build
+          body_path: dist/RELEASE.md
