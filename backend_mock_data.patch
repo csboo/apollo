@@ -1,0 +1,62 @@
+diff --git a/src/backend/logic.rs b/src/backend/logic.rs
+index 6b5f509..2bf923e 100644
+--- a/src/backend/logic.rs
++++ b/src/backend/logic.rs
+@@ -3,11 +3,53 @@ use dioxus::prelude::*;
+ use std::{env, process};
+ use tokio::sync::RwLock;
+ 
+-pub(super) static PUZZLES: LazyLock<RwLock<PuzzleSolutions>> =
+-    LazyLock::new(|| RwLock::new(PuzzleSolutions::new()));
++pub(super) static PUZZLES: LazyLock<RwLock<PuzzleSolutions>> = LazyLock::new(|| {
++    RwLock::new(PuzzleSolutions::from([
++        (
++            "1".to_string(),
++            Puzzle {
++                solution: "10".to_string(),
++                value: 100,
++            },
++        ),
++        (
++            "2".to_string(),
++            Puzzle {
++                solution: "20".to_string(),
++                value: 200,
++            },
++        ),
++        (
++            "3".to_string(),
++            Puzzle {
++                solution: "30".to_string(),
++                value: 300,
++            },
++        ),
++        (
++            "4".to_string(),
++            Puzzle {
++                solution: "40".to_string(),
++                value: 400,
++            },
++        ),
++    ]))
++});
+ 
+-pub(super) static TEAMS: LazyLock<RwLock<TeamsState>> =
+-    LazyLock::new(|| RwLock::new(TeamsState::new()));
++pub(super) static TEAMS: LazyLock<RwLock<TeamsState>> = LazyLock::new(|| {
++    RwLock::new(TeamsState::from([
++        ("feco".to_string(), SolvedPuzzles::from(["1".to_string()])),
++        (
++            "jero".to_string(),
++            SolvedPuzzles::from(["1".to_string(), "2".to_string(), "3".to_string()]),
++        ),
++        (
++            "karo".to_string(),
++            SolvedPuzzles::from(["1".to_string(), "3".to_string()]),
++        ),
++        ("genyo".to_string(), SolvedPuzzles::from(["".to_string()])),
++    ]))
++});
+
+ /// without `key`, the app won't run
+ fn ensure_env_var(key: &str) -> String {
