@@ -5,6 +5,8 @@ authors = [
   "csboo <csongiboo@gmail.com>",
   "Jeromos Kovacs <iitsnotme214@proton.me>"
 ]
+description = "a simple hackathon progress tracking app"
+repository = "https://github.com/csboo/apollo"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,7 +14,7 @@ edition = "2024"
 [dependencies]
 chacha20poly1305 = { version = "0.10.1", optional = true }
 ciborium = { version = "0.2.2", optional = true }
-dioxus = { version = "0.7.2", features = ["fullstack"] }
+dioxus = { version = "0.7.3", features = ["fullstack"] }
 # note: argon2 crate worth bearing in mind
 rust-argon2 = { version = "3.0.0", optional = true }
 tokio = { version = "1.49.0", optional = true }
@@ -22,8 +24,8 @@ zeroize = { version = "1.8.2", optional = true }
 [features]
 default = []
 web = ["dioxus/web"]
-desktop = ["dioxus/desktop"]
-mobile = ["dioxus/mobile"]
+# desktop = ["dioxus/desktop"]
+# mobile = ["dioxus/mobile"]
 server = [
   "dioxus/server",
   "dep:tokio",
@@ -34,3 +36,6 @@ server = [
 ]
 # save server state
 server_state_save = ["server", "dep:ciborium"]
+
+[build-dependencies]
+humantime = "2.3.0"
