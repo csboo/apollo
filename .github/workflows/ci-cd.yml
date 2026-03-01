@@ -105,7 +105,7 @@ jobs:
     if: github.ref_type == 'tag'
     needs: check-test-build
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           # destination
           path: release-artifacts
@@ -132,7 +132,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Download prebuilt artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: release-artifacts
           merge-multiple: true
