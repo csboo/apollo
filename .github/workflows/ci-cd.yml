@@ -129,6 +129,10 @@ jobs:
     if: github.event_name == 'push' && github.ref_name == 'main'
     needs: check-test-build
 
+    permissions:
+      contents: write
+      actions: write # is it necessary?
+
     steps:
       - uses: actions/checkout@v6
       - name: Download prebuilt artifacts
@@ -144,17 +148,12 @@ jobs:
           echo "Generated on: $(date -u +"%Y-%m-%d %H:%M") UTC" >> ${{ env.tip_release_path }}
           cat ${{ env.tip_release_path }}
 
-      - name: Update the tip tag
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag --force tip && git push --force origin tag tip
-
       - name: Update the draft tip release
         uses: softprops/action-gh-release@v2
         with:
+          name: Tip Build
+          tag_name: tip
           prerelease: true
           files: release-artifacts/*
-          tag_name: tip
-          name: Tip Build
           body_path: ${{ env.tip_release_path }}
+          target_commitish: ${{ github.sha }}
