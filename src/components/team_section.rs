@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use dioxus_primitives::toast::use_toast;
 
-use crate::app::{AuthState, actions::handle_logout, utils::get_points_of};
+use crate::app::home::{AuthState, actions::handle_logout, utils::get_points_of};
 use crate::backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles};
 use crate::components::{
     alert_dialog::*, tailwind_constants::BUTTON_RED, tailwind_constants::FLASH,

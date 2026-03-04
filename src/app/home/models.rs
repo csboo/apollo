@@ -1,6 +1,6 @@
 use dioxus_primitives::toast::Toasts;
 
-use crate::app::utils::popup_error;
+use crate::app::home::utils::popup_error;
 
 #[derive(Default, Clone, PartialEq)]
 pub struct AuthState {

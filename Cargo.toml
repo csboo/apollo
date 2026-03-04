@@ -23,6 +23,7 @@ rust-argon2 = { version = "3.0.0", optional = true }
 tokio = { version = "1.49.0", optional = true }
 uuid = { version = "1.19.0", features = ["v4", "serde"], optional = true }
 zeroize = { version = "1.8.2", optional = true }
+dioxus-router = "0.7.3"
 
 [features]
 default = ["web"]

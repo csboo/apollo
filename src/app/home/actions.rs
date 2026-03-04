@@ -2,7 +2,7 @@ use dioxus::{prelude::*, signals::Signal};
 use dioxus_primitives::toast::Toasts;
 
 use crate::{
-    app::{
+    app::home::{
         models::AuthState,
         utils::{
             parse_puzzle_csv, popup_error, popup_normal, validate_puzzle_id,

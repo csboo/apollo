@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::{
-    app::{AuthState, utils::get_points_of},
+    app::home::{AuthState, utils::get_points_of},
     backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles},
 };
 

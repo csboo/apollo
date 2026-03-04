@@ -1,6 +1,7 @@
 mod app;
 mod backend;
 mod components;
+mod routes;
 
 fn main() {
     dioxus::logger::initialize_default();

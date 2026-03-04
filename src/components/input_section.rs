@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use dioxus_primitives::toast::use_toast;
 
 use crate::{
-    app::{AuthState, actions},
+    app::home::{AuthState, actions},
     backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
     components::tailwind_constants::{BUTTON, CSV_INPUT, FLASH, INPUT},
 };
