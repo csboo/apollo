@@ -1,8 +1,8 @@
 #!/usr/bin/env fish
 
-# if ! set -e apollo_srv_addr
-#     set apollo_srv_addr "http://127.0.0.1:8080"
-# end
+if ! set -q apollo_srv_addr
+    set apollo_srv_addr "http://127.0.0.1:8080"
+end
 set apollo_api_base "$apollo_srv_addr/api"
 echo "server is at: $apollo_api_base"
 
@@ -64,4 +64,12 @@ function apollo_mock_solve -d "<repeat-num> <name>"
         echo "id: $id => solution: $solution"
         apollo_submit_solution $argv[2] $id $solution
     end
+end
+
+function apollo_set_admin_password -d "<password>"
+    if test (count $argv) -lt 1
+        echo "password not provided"
+        return 1
+    end
+    POST set_admin_password -d "{\"password\":\"$argv[1]\"}"
 end
