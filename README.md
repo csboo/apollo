@@ -59,6 +59,7 @@ To be able to contribute, [Rust] knowledge is most certainly necessary, go ahead
 Also make sure to [open an issue] or reach out to us (somehow), before opening a PR ([here's a guide] for complete rookies) to make sure it aligns with our <i>unwritten</i> goals.
 Definitely try to read the code and see whether you can understand it, we strive to write readable, easy-to-understand code.
 
+[`requests.fish`] is a manual CLI (mocker) client for testing the backend/server. See `requests.fish help`.
 
 [`.env.example`]: ./.env.example
 [`dioxus`]: https://dioxuslabs.com/
@@ -78,3 +79,4 @@ Definitely try to read the code and see whether you can understand it, we strive
 [here's a guide]: https://docs.github.com/en/get-started/start-your-journey/about-github-and-git
 [`dioxus` guide]: https://dioxuslabs.com/learn/0.7/
 [`tailwindcss`]: https://tailwindcss.com/
+[`requests.fish`]: ./requests.fish

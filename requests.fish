@@ -6,20 +6,20 @@ end
 set apollo_api_base "$apollo_srv_addr/api"
 echo "server is at: $apollo_api_base"
 
-function apollo_join -d "<username> [curl args]"
-    POST join -d "{\"username\":\"$argv[1]\"}" $argv[1..]
+function join -d "<username> (-b <cookie-load> -c <cookie-save>) [...]"
+    POST join -d "{\"username\":\"$argv[1]\"}" $argv[2..]
 end
 
-function apollo_set_solution -d "<puzzle_id> <solution> <password> [curl args]"
+function set_solution -d "<puzzle_id> <solution> <password> (-b <cookie-load> -c <cookie-save>) [...]"
     POST set_solution -d "{\"puzzle_solutions\":{\"$argv[1]\":{\"solution\":\"$argv[2]\",\"value\":32}},\"password\":\"$argv[3]\"}" $argv[4..]
 end
 
-function apollo_auth_state -d "<curl arg -b cookie-file>"
+function auth_state -d "(-b <cookie-load> -c <cookie-save>) [...]"
     GET auth_state $argv
 end
 
-function apollo_submit_solution -d "<username> <puzzle_id> <solution> [curl args]"
-    POST submit -d "{\"username\":\"$argv[1]\",\"puzzle_id\":\"$argv[2]\",\"solution\":\"$argv[3]\"}" $argv[4..]
+function submit -d "<puzzle_id> <solution> (-b <cookie-load> -c <cookie-save>) [...]"
+    POST submit -d "{\"puzzle_id\":\"$argv[1]\",\"solution\":\"$argv[2]\"}" $argv[3..]
 end
 
 function handle_resp
@@ -31,7 +31,6 @@ function handle_resp
         end
     else
         echo "WARN: got empty response"
-        # return 1
     end
 end
 
@@ -45,31 +44,48 @@ function POST
     handle_resp "$resp"
 end
 
-function apollo_mock_solutions -d "<from> <to> <password>; solutions: (id*10)"
+function mock_solutions -d "<from> <to> <password>"
     for id in (seq $argv[1] $argv[2])
-        apollo_set_solution $id (math "$id * 10") $argv[3] &
+        set_solution $id (math "$id * 10") $argv[3] &
     end
 end
 
-function apollo_mock_join -d "<team-num> <puzzle-num>"
+function mock_join -d "<team-count> <puzzle-count>"
     petname --count $argv[1] | while read -l the_petname
-        apollo_join $the_petname
-        apollo_mock_solve $argv[2] $the_petname &
+        join $the_petname
+        mock_solve $argv[2] &
     end
 end
 
-function apollo_mock_solve -d "<repeat-num> <name>"
+function mock_solve -d "<puzzle-count>"
     for id in (seq 0 $argv[1])
         set solution (math "$id * 10 + $(random) % 2")
         echo "id: $id => solution: $solution"
-        apollo_submit_solution $argv[2] $id $solution
+        submit $id $solution
     end
 end
 
-function apollo_set_admin_password -d "<password>"
+function set_admin_password -d "<password>"
     if test (count $argv) -lt 1
         echo "password not provided"
         return 1
     end
     POST set_admin_password -d "{\"password\":\"$argv[1]\"}"
+end
+
+switch "$argv[1]"
+    case "" help --help -h
+        echo
+        echo "usage: fish $(status filename) <command> [args...]"
+        echo
+        echo "commands:"
+
+        for line in (grep '[f]unction .* -d ' (status filename))
+            set name (string replace -r '.*function (\S+).*' '$1' -- $line)
+            set desc (string replace -r '.*-d "(.+)"' '$1' -- $line)
+            printf "- %-20s %s\n" $name $desc
+        end
+
+    case "*"
+        $argv
 end
