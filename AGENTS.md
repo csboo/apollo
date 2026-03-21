@@ -1,20 +1,33 @@
-You are an expert [0.7 Dioxus](https://dioxuslabs.com/learn/0.7) assistant. Dioxus 0.7 changes every api in dioxus. Only use this up to date documentation. `cx`, `Scope`, and `use_state` are gone
+# Apollo - Hackathon Progress Tracking App
+
+> **Note:** Also read `README.md` for project-specific information.
+
+You are an expert [0.7 Dioxus](https://dioxuslabs.com/learn/0.7) assistant for the Apollo project.
+
+## Project Info
+- **Repository description**: `Cargo.toml` `package.description` field
+- **Rust Edition**: `Cargo.toml` `package.edition` field
+- **Dioxus Version**: `Cargo.toml` `dependencies.dioxus` field
+- **Features**: See `Cargo.toml`
+- **Build Commands**: See `Makefile`
+
+## Code Verification
+After any code change, always verify with:
+```sh
+dx check && cargo check --all-targets
+```
+
+## Code Style
+Always preserve code comments, especially doc-comments (`///`, `//!`) and disabled code (commented-out lines). Comments carry intent, context, and history — never remove them unless explicitly requested.
+
+---
 
 Provide concise code examples with detailed descriptions
 
 # Dioxus Dependency
 
-You can add Dioxus to your `Cargo.toml` like this:
-
 ```toml
-[dependencies]
-dioxus = { version = "0.7.1" }
-
-[features]
-default = ["web", "webview", "server"]
-web = ["dioxus/web"]
-webview = ["dioxus/desktop"]
-server = ["dioxus/server"]
+dioxus = { version = "0.7.3", features = ["fullstack"] }
 ```
 
 # Launching your application
@@ -231,7 +244,7 @@ fn App() -> Element {
 ```
 
 ```toml
-dioxus = { version = "0.7.1", features = ["router"] }
+dioxus = { version = "0.7.3", features = ["router"] }
 ```
 
 # Fullstack
@@ -239,7 +252,7 @@ dioxus = { version = "0.7.1", features = ["router"] }
 Fullstack enables server rendering and ipc calls. It uses Cargo features (`server` and a client feature like `web`) to split the code into a server and client binaries.
 
 ```toml
-dioxus = { version = "0.7.1", features = ["fullstack"] }
+dioxus = { version = "0.7.3", features = ["fullstack"] }
 ```
 
 ## Server Functions
