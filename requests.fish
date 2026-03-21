@@ -52,9 +52,9 @@ function apollo_mock_solutions -d "<from> <to> <password>; solutions: (id*10)"
 end
 
 function apollo_mock_join -d "<team-num> <puzzle-num>"
-    petname --count $argv[1] | while read -l pn
-        apollo_join $pn
-        apollo_mock_solve $argv[2] $pn &
+    petname --count $argv[1] | while read -l the_petname
+        apollo_join $the_petname
+        apollo_mock_solve $argv[2] $the_petname &
     end
 end
 
