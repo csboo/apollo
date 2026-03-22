@@ -4,6 +4,10 @@
 pub mod models;
 
 #[cfg(feature = "server")]
+mod i18n;
+#[cfg(feature = "server")]
 mod logic;
+#[cfg(feature = "server")]
+pub type CookieMap = dioxus::fullstack::TypedHeader<dioxus::fullstack::Cookie>;
 
 pub mod endpoints;
