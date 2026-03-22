@@ -14,7 +14,7 @@ You are an expert [0.7 Dioxus](https://dioxuslabs.com/learn/0.7) assistant for t
 ## Code Verification
 After any code change, always verify with:
 ```sh
-dx check && cargo check --all-targets
+make check && dx check
 ```
 
 ## Code Style
