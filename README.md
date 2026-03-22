@@ -1,50 +1,82 @@
-# Development
+# Apollo
 
-Your new bare-bones project includes minimal organization with a single `main.rs` file and a few assets.
+## Description
 
-```
-project/
-├─ assets/ # Any assets that are used by the app should be placed here
-├─ src/
-│  ├─ main.rs # main.rs is the entry point to your application and currently contains all components for the app
-├─ Cargo.toml # The Cargo.toml file defines the dependencies and feature flags for your project
-```
+`Apollo` is a web-app, that helps with hackathon management.
+It's easy to set up as a host and just as intuitive to use a contestant as well.
 
-### Automatic Tailwind (Dioxus 0.7+)
+## Deployment process
 
-As of Dioxus 0.7, there no longer is a need to manually install tailwind. Simply `dx serve` and you're good to go!
+1. The host sets up the server (see [`make help`](./Makefile) and [`.env.example`]).
+2. Sets the `admin_password` (this will be used for encryption and authentication).
+3. Adds puzzles to the apollo event.
 
-Automatic tailwind is supported by checking for a file called `tailwind.css` in your app's manifest directory (next to Cargo.toml). To customize the file, use the dioxus.toml:
+And it's ready to take contestants, the hackathon can finally start!
 
-```toml
-[application]
-tailwind_input = "my.css"
-tailwind_output = "assets/out.css" # also customize the location of the out file!
-```
+## During the hackathon
 
-### Tailwind Manual Install
+1. Contestants join the event.
+2. They submit their solutions
+   - if it's correct, they get their points.
+   - if it's incorrect, `apollo` reject the solution, obviously
+3. Everyone can see the standings in real-time.
 
-To use tailwind plugins or manually customize tailwind, you can can install the Tailwind CLI and use it directly.
+## Features
 
-### Tailwind
-1. Install npm: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
-2. Install the Tailwind CSS CLI: https://tailwindcss.com/docs/installation/tailwind-cli
-3. Run the following command in the root of the project to start the Tailwind CSS compiler:
+- Simplicity.
+- State saving: to disk
+- Customisability: see [`.env.example`], future admin interface
+- Intuitive design: eg. session cookies
+- Strong security: [see details and common pitfalls to watch out for](#Security).
 
-```bash
-npx @tailwindcss/cli -i ./input.css -o ./assets/tailwind.css --watch
-```
+## Security
 
-### Serving Your App
+- We use [`Argon2`] for password-hashing.
+- State saving is encrypted with [`chacha20poly1305`] (based on [this great guide])
 
-Run the following command in the root of your project to start developing with the default platform:
+> [!note]
+> As a host pay attention to security and make sure to use `https`, as your hackathon contestants might have success cheating otherwise.
 
-```bash
-dx serve --platform web
-```
+> [!tip]
+> [`Certbot`] might be able to help you out getting `https` work.
 
-To run for a different platform, use the `--platform platform` flag. E.g.
-```bash
-dx serve --platform desktop
-```
+> [!note]
+> No rate-limiting is implemented, and anyway in general, it's advisable to put `apollo` behind a reverse-proxy, eg: [`nginx`] or [`traefik`].
 
+## About
+
+Development started in 2025 by [@csboo] and [@jarjk], two elder students of the [Lovassy László Gimnázium] to have a nice little manager for the famous in-house, annual hackathon: <b>Kódfejtő</b>.
+
+## Caveats (i.e. `apollo` is a WIP)
+
+- See [open issues].
+- [`dioxus`] is in beta, so be patient during development.
+
+## Code/Contributing
+
+`Apollo` is written using [`dioxus`] (a React-like framework for/in [Rust]), styled with [`tailwindcss`].
+To be able to contribute, [Rust] knowledge is most certainly necessary, go ahead and read the [amazing rustbook], afterward familirialise yourself with the [`dioxus` guide].
+Also make sure to [open an issue] or reach out to us (somehow), before opening a PR ([here's a guide] for complete rookies) to make sure it aligns with our <i>unwritten</i> goals.
+Definitely try to read the code and see whether you can understand it, we strive to write readable, easy-to-understand code.
+
+[`requests.fish`] is a manual CLI (mocker) client for testing the backend/server. See `requests.fish help`.
+
+[`.env.example`]: ./.env.example
+[`dioxus`]: https://dioxuslabs.com/
+[Rust]: https://rust-lang.org
+[`Argon2`]: https://en.wikipedia.org/wiki/Argon2
+[`chacha20poly1305`]: https://en.wikipedia.org/wiki/ChaCha20-Poly1305
+[this great guide]: https://kerkour.com/rust-file-encryption-chacha20poly1305-argon2
+[`Certbot`]: https://certbot.eff.org/
+[`nginx`]: https://nginx.org/en/
+[`traefik`]: https://doc.traefik.io/traefik/
+[@csboo]: https://github.com/csboo
+[@jarjk]: https://github.com/jarjk
+[Lovassy László Gimnázium]: https://web.lovassy.hu
+[open issues]: https://github.com/csboo/apollo/issues/
+[amazing rustbook]: https://doc.rust-lang.org/stable/book/
+[open an issue]: https://github.com/csboo/apollo/issues/new/
+[here's a guide]: https://docs.github.com/en/get-started/start-your-journey/about-github-and-git
+[`dioxus` guide]: https://dioxuslabs.com/learn/0.7/
+[`tailwindcss`]: https://tailwindcss.com/
+[`requests.fish`]: ./requests.fish
