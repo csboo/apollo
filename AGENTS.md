@@ -1,60 +1,23 @@
-# Apollo - Hackathon Progress Tracking App
+# agents.md
 
-> **Note:** Also read `README.md` for project-specific information.
-
-You are an expert [0.7 Dioxus](https://dioxuslabs.com/learn/0.7) assistant for the Apollo project.
-
-## Project Info
-- **Repository description**: `Cargo.toml` `package.description` field
-- **Rust Edition**: `Cargo.toml` `package.edition` field
-- **Dioxus Version**: `Cargo.toml` `dependencies.dioxus` field
-- **Features**: See `Cargo.toml`
-- **Build Commands**: See `Makefile`
-
-## Code Verification
-After any code change, always verify with:
-```sh
-dx check && cargo check --all-targets
-```
-
-## Code Style
-Always preserve code comments, especially doc-comments (`///`, `//!`) and disabled code (commented-out lines). Comments carry intent, context, and history — never remove them unless explicitly requested.
+The role of this file is to describe common mistakes and confusion points that agents might encounter as they work in this project. If you ever encounter something in the project that surprises you, please alert the developer working with you and indicate that this is the case in the AgentsMD file to help prevent future agents from having the same issue.
 
 ---
 
-Provide concise code examples with detailed descriptions
+## basic rules
 
-# Dioxus Dependency
+- search for context in `README.md`
+- search for tool calls in the `Makefile`
+- always verify changes you make (`make check`)
+- always preserve code comments, especially doc-comments (`///`, `//!`), but also disabled code (commented-out lines)
 
-```toml
-dioxus = { version = "0.7.3", features = ["fullstack"] }
-```
+---
 
-# Launching your application
+## dioxus in-depth
 
-You need to create a main function that sets up the Dioxus runtime and mounts your root component.
+**NOTE**: only read this if the code change will effect core parts with `dioxus` 
 
-```rust
-use dioxus::prelude::*;
-
-fn main() {
-	dioxus::launch(App);
-}
-
-#[component]
-fn App() -> Element {
-	rsx! { "Hello, Dioxus!" }
-}
-```
-
-Then serve with `dx serve`:
-
-```sh
-curl -sSL http://dioxus.dev/install.sh | sh
-dx serve
-```
-
-# UI with RSX
+### UI with RSX
 
 ```rust
 rsx! {
@@ -77,7 +40,7 @@ rsx! {
 }
 ```
 
-# Assets
+### Assets
 
 The asset macro can be used to link to local files to use in your project. All links start with `/` and are relative to the root of your project.
 
@@ -90,7 +53,7 @@ rsx! {
 }
 ```
 
-## Styles
+### Styles
 
 The `document::Stylesheet` component will inject the stylesheet into the `<head>` of the document
 
@@ -102,11 +65,11 @@ rsx! {
 }
 ```
 
-# Components
+### Components
 
 Components are the building blocks of apps
 
-* Component are functions annotated with the `#[component]` macro.
+* Components are functions annotated with the `#[component]` macro.
 * The function name must start with a capital letter or contain an underscore.
 * A component re-renders only under two conditions:
 	1.  Its props change (as determined by `PartialEq`).
@@ -137,11 +100,11 @@ Each component accepts function arguments (props)
 * Props must implement `PartialEq` and `Clone`.
 * To make props reactive and copy, you can wrap the type in `ReadOnlySignal`. Any reactive state like memos and resources that read `ReadOnlySignal` props will automatically re-run when the prop changes.
 
-# State
+### State
 
 A signal is a wrapper around a value that automatically tracks where it's read and written. Changing a signal's value causes code that relies on the signal to rerun.
 
-## Local State
+#### Local State
 
 The `use_signal` hook creates state that is local to a single component. You can call the signal like a function (e.g. `my_signal()`) to clone the value, or use `.read()` to get a reference. `.write()` gets a mutable reference to the value.
 
@@ -168,7 +131,7 @@ fn Counter() -> Element {
 }
 ```
 
-## Context API
+### Context API
 
 The Context API allows you to share state down the component tree. A parent provides the state using `use_context_provider`, and any child can access it with `use_context`
 
@@ -191,7 +154,7 @@ fn Child() -> Element {
 }
 ```
 
-# Async
+### Async
 
 For state that depends on an asynchronous operation (like a network request), Dioxus provides a hook called `use_resource`. This hook manages the lifecycle of the async task and provides the result to your component.
 
@@ -211,7 +174,7 @@ match dog() {
 }
 ```
 
-# Routing
+## Routing
 
 All possible routes are defined in a single Rust `enum` that derives `Routable`. Each variant represents a route and is annotated with `#[route("/path")]`. Dynamic Segments can capture parts of the URL path as parameters by using `:name` in the route string. These become fields in the enum variant.
 
@@ -247,15 +210,11 @@ fn App() -> Element {
 dioxus = { version = "0.7.3", features = ["router"] }
 ```
 
-# Fullstack
+## Fullstack
 
-Fullstack enables server rendering and ipc calls. It uses Cargo features (`server` and a client feature like `web`) to split the code into a server and client binaries.
+The fullstack feature enables server rendering and ipc calls. It uses Cargo features (`server` and a client feature like `web`) to split the code into a server and client binaries.
 
-```toml
-dioxus = { version = "0.7.3", features = ["fullstack"] }
-```
-
-## Server Functions
+### Server Functions
 
 Use the `#[post]` / `#[get]` macros to define an `async` function that will only run on the server. On the server, this macro generates an API endpoint. On the client, it generates a function that makes an HTTP request to that endpoint.
 
@@ -267,11 +226,11 @@ async fn double_server(number: i32, path: String, query: i32) -> Result<i32, Ser
 }
 ```
 
-## Hydration
+### Hydration
 
 Hydration is the process of making a server-rendered HTML page interactive on the client. The server sends the initial HTML, and then the client-side runs, attaches event listeners, and takes control of future rendering.
 
-### Errors
+#### Errors
 The initial UI rendered by the component on the client must be identical to the UI rendered on the server.
 
 * Use the `use_server_future` hook instead of `use_resource`. It runs the future on the server, serializes the result, and sends it to the client, ensuring the client has the data immediately for its first render.
