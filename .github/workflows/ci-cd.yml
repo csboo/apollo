@@ -44,7 +44,7 @@ jobs:
           version: latest # could be anything
 
       - name: install rust target
-        run: rustup target add ${{ matrix.target }}
+        run: rustup target add ${{ matrix.target }} wasm32-unknown-unknown
 
       - name: Check for compilation errors, code quality with clippy, formatting with each reasonable combination of features
         run: make strict-check TARGET=${{ matrix.target }}
