@@ -14,18 +14,9 @@ dx-args:=@server ${dx-server-args} @client ${dx-client-args}
 dist_p := target/dist
 dx_c_p := target/dx
 bin_ext := $(if $(findstring windows,${TARGET}),.exe,)
-SERVER_TARGET ?= x86_64-unknown-linux-gnu
-server-target-arg := --target ${SERVER_TARGET}
-server_bin_ext := $(if $(findstring windows,${SERVER_TARGET}),.exe,)
-server_build_cmd := build
 
 ifeq (${PROFILE},release)
 profile-arg:=--release
-endif
-
-ifneq (${NATIVE_TARGET},${SERVER_TARGET})
-$(info setting build-command to zigbuild, as we are not compiling for the native target)
-server_build_cmd := zigbuild
 endif
 
 default: serve
@@ -79,8 +70,9 @@ bundle: prepare-assets
 
 server-build:
 	@echo 'probably `ulimit -n 1024`' # needed on my mac for sure
-	cargo ${server_build_cmd} --release ${server-target-arg} --no-default-features --features server_state_save,web
-	cp target/${SERVER_TARGET}/release/apollo${server_bin_ext} apollo-${SERVER_TARGET}${server_bin_ext}
+	# NOTE: think of this command as a reference
+	cargo zigbuild --release --target x86_64-unknown-linux-gnu --no-default-features --features server_state_save,web
+	cp target/x86_64-unknown-linux-gnu/release/apollo apollo-server-x64-linux-gnu
 
 clean:
 	cargo clean
@@ -97,5 +89,5 @@ help list:
 	@echo "fmt-check: verify formatting (hopefully without modifying files)"
 	@echo "strict-check: all checks from above"
 	@echo "bundle [TARGET=, PROFILE=debug|release]: bundle apollo in web mode"
-	@echo "server-build [SERVER_TARGET=]: build server binary in release mode"
+	@echo "server-build: cross-compile server binary in release mode for x64-linux-gnu"
 	@echo "clean: clean target"
