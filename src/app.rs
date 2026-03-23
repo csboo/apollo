@@ -2,11 +2,13 @@
 #![forbid(unsafe_code)]
 
 pub mod admin;
+mod components;
 pub mod home;
 
 use dioxus::prelude::*;
 
-use crate::{components::toast::ToastProvider, routes::ApolloRoutes};
+use crate::routes::ApolloRoutes;
+use components::toast::ToastProvider;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");

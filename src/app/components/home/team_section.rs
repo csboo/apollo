@@ -1,11 +1,13 @@
 use dioxus::prelude::*;
 use dioxus_primitives::toast::use_toast;
 
-use crate::app::home::{AuthState, actions::handle_logout, utils::get_points_of};
-use crate::backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles};
-use crate::components::{
-    alert_dialog::*, tailwind_constants::BUTTON_RED, tailwind_constants::FLASH,
-    team_status::TeamStatus,
+use crate::{
+    app::components::{
+        alert_dialog::*, home::team_status::*, tailwind_constants::BUTTON_RED,
+        tailwind_constants::FLASH,
+    },
+    app::home::{AuthState, actions::handle_logout, utils::get_points_of},
+    backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles},
 };
 
 #[component]

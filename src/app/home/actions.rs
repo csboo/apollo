@@ -19,128 +19,154 @@ fn check_admin_username(username: String) -> bool {
     username == admin_username
 }
 
-pub async fn handle_join(mut auth: Signal<AuthState>, toast_api: Toasts) {
-    let u = auth.read().username.clone();
-    if !auth.read().validate_username(toast_api) {
-        return;
-    }
-
-    if check_admin_username(u.clone()) {
-        auth.write().is_admin = true;
-        auth.write().show_password_prompt = true;
-
-        // If password is empty, don't proceed yet
-        if auth.read().validate_password(toast_api) {
-            let auth_curr = auth.read().clone();
-            match crate::backend::endpoints::set_admin_password(auth_curr.password).await {
-                Ok(msg) => {
-                    auth.write().joined = true;
-                    popup_normal(toast_api, msg);
-                }
-                Err(e) => popup_error(
-                    toast_api,
-                    format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
-                ),
+pub fn handle_user_join(
+    mut auth: Signal<AuthState>,
+    toast_api: Toasts,
+) -> impl FnMut(Event<MouseData>) + 'static {
+    move |_| {
+        spawn(async move {
+            let u = auth.read().username.clone();
+            if !auth.read().validate_username(toast_api) {
+                return;
             }
-        }
-        return;
-    };
 
-    let _ok_none = crate::backend::endpoints::join(u.clone()).await;
-    match crate::backend::endpoints::auth_state().await {
-        Ok(uname) => {
-            popup_normal(toast_api, format!("Üdv, {}", uname));
-            auth.write().joined = true; // TODO auth.reset(_somefield)
-            auth.write().password = String::new();
-            auth.write().show_password_prompt = false;
-        }
-        Err(e) => {
-            popup_error(
-                toast_api,
-                format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
-            );
-        }
-    }
+            let _ok_none = crate::backend::endpoints::join(u.clone()).await;
+            match crate::backend::endpoints::auth_state().await {
+                Ok(uname) => {
+                    popup_normal(toast_api, format!("Üdv, {}", uname));
+                    auth.write().joined = true; // TODO auth.reset(_somefield)
+                    auth.write().password = String::new();
+                    auth.write().show_password_prompt = false;
+                }
+                Err(e) => {
+                    popup_error(
+                        toast_api,
+                        format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
+                    );
+                }
+            }
+        }); // spawn async move
+    } // move
 }
 
-pub async fn handle_user_submit(
+pub fn handle_admin_join(
+    mut auth: Signal<AuthState>,
+    toast_api: Toasts,
+) -> impl FnMut(Event<MouseData>) + 'static {
+    move |_| {
+        spawn(async move {
+            if !auth.read().validate_username(toast_api) {
+                return;
+            }
+
+            auth.write().is_admin = true;
+            auth.write().show_password_prompt = true;
+
+            // If password is empty, don't proceed yet
+            if auth.read().validate_password(toast_api) {
+                let auth_curr = auth.read().clone();
+                match crate::backend::endpoints::set_admin_password(auth_curr.password).await {
+                    Ok(msg) => {
+                        auth.write().joined = true;
+                        popup_normal(toast_api, msg);
+                    }
+                    Err(e) => popup_error(
+                        toast_api,
+                        format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
+                    ),
+                }
+            }
+        }); // spawn async move
+    } // move
+}
+
+pub fn handle_user_submit(
     mut puzzle_id: Signal<String>,
     mut puzzle_solution: Signal<String>,
     toast_api: Toasts,
-) {
-    let puzzle_current = puzzle_id.read().clone();
-    let solution_current = puzzle_solution.read().clone();
-    if !validate_puzzle_id(&puzzle_current, toast_api) {
-        return;
-    }
-    if !validate_puzzle_solution(&solution_current, toast_api) {
-        return;
-    }
+) -> impl FnMut(Event<MouseData>) + 'static {
+    move |_| {
+        spawn(async move {
+            let puzzle_current = puzzle_id.read().clone();
+            let solution_current = puzzle_solution.read().clone();
+            if !validate_puzzle_id(&puzzle_current, toast_api) {
+                return;
+            }
+            if !validate_puzzle_solution(&solution_current, toast_api) {
+                return;
+            }
 
-    match crate::backend::endpoints::submit_solution(puzzle_current, solution_current).await {
-        Ok(msg) => {
-            popup_normal(toast_api, msg);
-            puzzle_id.set(String::new());
-            puzzle_solution.set(String::new());
-        }
-        Err(e) => {
-            popup_error(toast_api, format!("Hiba: {}", e));
-        }
+            match crate::backend::endpoints::submit_solution(puzzle_current, solution_current).await
+            {
+                Ok(msg) => {
+                    popup_normal(toast_api, msg);
+                    puzzle_id.set(String::new());
+                    puzzle_solution.set(String::new());
+                }
+                Err(e) => {
+                    popup_error(toast_api, format!("Hiba: {}", e));
+                }
+            }
+        });
     }
 }
 
-pub async fn handle_admin_submit(
+pub fn handle_admin_submit(
+    auth: Signal<AuthState>,
     mut puzzle_id: Signal<String>,
     mut puzzle_value: Signal<String>,
     mut puzzle_solution: Signal<String>,
     parsed_puzzles: Signal<PuzzleSolutions>,
-    password_current: String,
     toast_api: Toasts,
-) {
-    match crate::backend::endpoints::set_solution(
-        if parsed_puzzles.read().is_empty() {
-            if !validate_puzzle_id(&puzzle_id.read().clone(), toast_api) {
-                return;
-            }
-            if !validate_puzzle_solution(&puzzle_solution.read().clone(), toast_api) {
-                return;
-            }
-            if !validate_puzzle_value(&puzzle_value.read().clone(), toast_api) {
-                return;
-            }
+) -> impl FnMut(Event<MouseData>) + 'static {
+    move |_| {
+        spawn(async move {
+            match crate::backend::endpoints::set_solution(
+                if parsed_puzzles.read().is_empty() {
+                    if !validate_puzzle_id(&puzzle_id.read().clone(), toast_api) {
+                        return;
+                    }
+                    if !validate_puzzle_solution(&puzzle_solution.read().clone(), toast_api) {
+                        return;
+                    }
+                    if !validate_puzzle_value(&puzzle_value.read().clone(), toast_api) {
+                        return;
+                    }
 
-            debug!("parsed puzzles is empty, trying from manual values");
-            let Ok(value_current) = puzzle_value.read().parse() else {
-                popup_error(toast_api, "Az érték csak szám lehet");
-                return;
-            };
-            PuzzleSolutions::from([(
-                puzzle_id.read().clone(),
-                Puzzle {
-                    value: value_current,
-                    solution: puzzle_solution.read().clone(),
+                    debug!("parsed puzzles is empty, trying from manual values");
+                    let Ok(value_current) = puzzle_value.read().parse() else {
+                        popup_error(toast_api, "Az érték csak szám lehet");
+                        return;
+                    };
+                    PuzzleSolutions::from([(
+                        puzzle_id.read().clone(),
+                        Puzzle {
+                            value: value_current,
+                            solution: puzzle_solution.read().clone(),
+                        },
+                    )])
+                } else {
+                    parsed_puzzles.read().clone()
                 },
-            )])
-        } else {
-            parsed_puzzles.read().clone()
-        },
-        password_current,
-    )
-    .await
-    {
-        Ok(msg) => {
-            popup_normal(toast_api, msg);
-            puzzle_id.set(String::new());
-            puzzle_solution.set(String::new());
-            puzzle_value.set(String::new());
-            // password.set(String::new()); NOTE should remember password?
-        }
-        Err(e) => {
-            popup_error(
-                toast_api,
-                format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
-            );
-        }
+                auth.read().cloned().password,
+            )
+            .await
+            {
+                Ok(msg) => {
+                    popup_normal(toast_api, msg);
+                    puzzle_id.set(String::new());
+                    puzzle_solution.set(String::new());
+                    puzzle_value.set(String::new());
+                    // password.set(String::new()); NOTE should remember password?
+                }
+                Err(e) => {
+                    popup_error(
+                        toast_api,
+                        format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
+                    );
+                }
+            }
+        });
     }
 }
 
@@ -171,36 +197,6 @@ pub fn toggle_fullscreen(
         trace!("fullscreen toggle called");
         let fullscreen_current = *is_fullscreen.read();
         is_fullscreen.set(!fullscreen_current);
-    }
-}
-
-pub fn handle_action(
-    auth: Signal<AuthState>,
-    toast_api: Toasts,
-    puzzle_id: Signal<String>,
-    puzzle_value: Signal<String>,
-    puzzle_solution: Signal<String>,
-    parsed_puzzles: Signal<PuzzleSolutions>,
-) -> impl FnMut(Event<MouseData>) + 'static {
-    move |_| {
-        spawn(async move {
-            trace!("action handler called");
-            if !auth.read().joined {
-                self::handle_join(auth, toast_api).await;
-            } else if auth.read().is_admin {
-                self::handle_admin_submit(
-                    puzzle_id,
-                    puzzle_value,
-                    puzzle_solution,
-                    parsed_puzzles,
-                    auth.read().password.clone(),
-                    toast_api,
-                )
-                .await;
-            } else {
-                self::handle_user_submit(puzzle_id, puzzle_solution, toast_api).await;
-            }
-        });
     }
 }
 

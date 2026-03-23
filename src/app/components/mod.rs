@@ -1,8 +1,8 @@
 // AUTOGENERTED Components module
+mod general;
+
+pub mod admin;
 pub mod alert_dialog;
-pub mod input_section;
-pub mod score_table;
+pub mod home;
 pub mod tailwind_constants;
-pub mod team_section;
-pub mod team_status;
 pub mod toast;

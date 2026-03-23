@@ -11,8 +11,8 @@ pub mod utils;
 pub use crate::app::home::models::AuthState;
 
 use crate::{
-    backend::models::{PuzzleId, PuzzleSolutions, PuzzleValue, SolvedPuzzles},
-    components::{input_section::InputSection, score_table::ScoreTable, team_section::TeamSection},
+    app::components::home,
+    backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles},
 };
 
 #[component]
@@ -22,14 +22,12 @@ pub fn Home() -> Element {
     trace!("initing variables");
     let puzzle_id = use_signal(String::new);
     let puzzle_solution = use_signal(String::new);
-    let puzzle_value = use_signal(String::new);
     let auth = use_signal(AuthState::default);
     let auth_current = auth.read();
     let teams_state = use_signal(Vec::<(String, SolvedPuzzles)>::new);
     let puzzles = use_signal(Vec::<(PuzzleId, PuzzleValue)>::new);
     let title = use_signal(|| None::<String>);
     let is_fullscreen = use_signal(|| false);
-    let parsed_puzzles = use_signal(PuzzleSolutions::new);
     let logout_alert = use_signal(|| false);
     let delete_alert = use_signal(|| false);
 
@@ -58,7 +56,7 @@ pub fn Home() -> Element {
             } // div: other-container
 
             div { class: "table-container mt-5 overflow-x-auto", style: "-webkit-overflow-scrolling: touch;",
-                ScoreTable {
+                home::ScoreTable {
                     puzzles: puzzles,
                     teams_state: teams_state,
                     toggle_fullscreen: actions::toggle_fullscreen(is_fullscreen),
@@ -69,19 +67,21 @@ pub fn Home() -> Element {
                 if title.read().as_ref().is_some_and(|t| !t.is_empty()) {
                     // Input section
                     div { class: "input-section relative input-flexy-boxy flex flex-wrap gap-3 flex-row",
-                        InputSection {
-                            auth,
-                            puzzle_id,
-                            puzzle_value,
-                            puzzle_solution,
-                            parsed_puzzles,
-                            teams_state,
-                            puzzles,
+                        if auth_current.joined {
+                            home::TaskManager {
+                                auth,
+                                puzzle_id,
+                                puzzle_solution,
+                                teams_state,
+                                puzzles,
+                            }
+                        } else {
+                            home::Login { auth }
                         }
                     } // div: input-section
 
-                    if auth_current.joined && !auth_current.is_admin{
-                        TeamSection {
+                    if auth_current.joined {
+                        home::TeamSection {
                             auth,
                             logout_alert,
                             delete_alert,
