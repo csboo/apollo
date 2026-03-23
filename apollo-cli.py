@@ -23,7 +23,7 @@ def usage():
         "submit <username> <id> <solution>\n"
         "logout <username>\n"
         "mock_puzzles <from_id_int> <to_id_int> <password>\n"
-        "mock_join <team-count>",
+        "mock_join <from_char> <to_char>",
         file=sys.stderr,
     )
 
@@ -188,15 +188,25 @@ def cmd_mock_puzzles(args):
 
 
 def cmd_mock_join(args):
-    if len(args) != 1:
+    if len(args) != 2:
         usage()
         raise SystemExit(1)
-    count = int(args[0])
-    if count > len(string.ascii_lowercase):
-        print("mock_join supports at most 26 teams", file=sys.stderr)
+    start_char, end_char = args
+    if (
+        len(start_char) != 1
+        or len(end_char) != 1
+        or start_char not in string.ascii_lowercase
+        or end_char not in string.ascii_lowercase
+    ):
+        print("mock_join expects lowercase ascii characters", file=sys.stderr)
         raise SystemExit(1)
-    for username in string.ascii_lowercase[:count]:
-        cmd_join([username])
+    if start_char > end_char:
+        print("mock_join expects <from_char> <= <to_char>", file=sys.stderr)
+        raise SystemExit(1)
+    start_idx = string.ascii_lowercase.index(start_char)
+    end_idx = string.ascii_lowercase.index(end_char)
+    for username in string.ascii_lowercase[start_idx : end_idx + 1]:
+        cmd_join([f"user-{username}"])
 
 
 COMMANDS = {

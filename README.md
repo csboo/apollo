@@ -59,7 +59,7 @@ To be able to contribute, [Rust] knowledge is most certainly necessary, go ahead
 Also make sure to [open an issue] or reach out to us (somehow), before opening a PR ([here's a guide] for complete rookies) to make sure it aligns with our <i>unwritten</i> goals.
 Definitely try to read the code and see whether you can understand it, we strive to write readable, easy-to-understand code.
 
-[`apollo-cli.py`] is a manual CLI (mocker) client for testing the backend/server. See `python apollo-cli.py help`.
+[`apollo-cli.py`] is a manual CLI (mocker) client for testing the backend/server. See `./apollo-cli.py help`.
 
 [`.env.example`]: ./.env.example
 [`dioxus`]: https://dioxuslabs.com/
