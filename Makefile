@@ -32,32 +32,32 @@ serve-no-state:
 	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve --web
 
 check:
-	cargo check --frozen --all-targets
-	cargo check --frozen -F server_state_save
-	cargo check --frozen -F web --target wasm32-unknown-unknown
+	cargo check --all-targets
+	cargo check -F server_state_save
+	cargo check -F web --target wasm32-unknown-unknown
 
 check-all:
-	cargo hack check --frozen ${CARGO_HACK_FEAT_ARGS} --no-dev-deps ${target-arg} --verbose
+	cargo hack check ${CARGO_HACK_FEAT_ARGS} --no-dev-deps ${target-arg} --verbose
 
 clippy: prepare-assets
-	cargo clippy --frozen --no-deps
+	cargo clippy --no-deps
 
 clippy-all: prepare-assets
-	cargo hack clippy --frozen ${CARGO_HACK_FEAT_ARGS} ${target-arg} --all-targets --no-deps --verbose
+	cargo hack clippy ${CARGO_HACK_FEAT_ARGS} ${target-arg} --all-targets --no-deps --verbose
 
 format fmt:
-	dx fmt --frozen
-	cargo fmt --frozen
+	dx fmt
+	cargo fmt
 
 fmt-check format-check:
-	cargo fmt --frozen --all --check --verbose
-	dx fmt --frozen --check --verbose
+	cargo fmt --all --check --verbose
+	dx fmt --check --verbose
 
 strict-check: check check-all clippy clippy-all fmt-check
 
 bundle: prepare-assets
 	rm -r ${dist_p} ${dx_c_p} || echo "deleting cache, would bloat otherwise"
-	dx bundle --frozen --debug-symbols=false --verbose --out-dir ${dist_p} ${profile-arg} ${dx-args}
+	dx bundle --debug-symbols=false --verbose --out-dir ${dist_p} ${profile-arg} ${dx-args}
 
 	# rename to include optional extension
 	mv ${dist_p}/apollo ${dist_p}/apollo${bin_ext} || echo "same file, not moving"
@@ -70,7 +70,7 @@ server-build:
 	target="x86_64-unknown-linux-gnu" # NOTE: feel free to overwrite this to musl
 	build_cmd="build"
 	if "${NATIVE_HOST}" -ne "${target}"; then; build_cmd="zigbuild"; fi
-	cargo ${build_cmd} --frozen --release ${target-arg} --no-default-features --features server_state_save,web
+	cargo ${build_cmd} --release ${target-arg} --no-default-features --features server_state_save,web
 	cp target/${target}/release/apollo apollo-x64-linux-gnu
 
 clean:
