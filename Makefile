@@ -62,10 +62,10 @@ bundle: prepare-assets
 	rm -r ${dist_p} ${dx_c_p} || echo "deleting cache, would bloat otherwise"
 	dx bundle --debug-symbols=false --verbose --out-dir ${dist_p} ${profile-arg} ${dx-args}
 
-	# rename to include optional extension
-	mv ${dist_p}/apollo ${dist_p}/apollo${bin_ext} || echo "same file, not moving"
+	# rename `server` to include app name and optional extension
+	mv ${dist_p}/server ${dist_p}/apollo-server${bin_ext} || echo "same file, not moving"
 	# rename to include platform
-	tar -C ${dist_p} -cvf ${dist_p}/apollo-web-${TARGET}.tar apollo${bin_ext} public/
+	tar -C ${dist_p} -cvf ${dist_p}/apollo-web-${TARGET}.tar apollo-server${bin_ext} public/
 	tar -tf ${dist_p}/apollo-web-${TARGET}.tar
 
 server-build:
@@ -88,6 +88,6 @@ help list:
 	@echo "format|fmt: format code (rsx macros as well)"
 	@echo "fmt-check: verify formatting (hopefully without modifying files)"
 	@echo "strict-check: all checks from above"
-	@echo "bundle [TARGET=, PROFILE=debug|release]: bundle apollo in web mode"
+	@echo "bundle [TARGET=, PROFILE=debug|release]: bundle apollo for the web"
 	@echo "server-build: cross-compile server binary in release mode for x64-linux-gnu"
 	@echo "clean: clean target"
