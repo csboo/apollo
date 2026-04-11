@@ -68,7 +68,7 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
         _ = TEAMS
             .write()
             .await
-            .insert(username.clone(), SolvedPuzzles::new());
+            .insert(username.clone(), TeamAttempts::new());
     }
     // allowed to log in, but don't reset progress
 
@@ -220,21 +220,26 @@ pub async fn submit_solution(
             .or_internal_server_error("nem sikerült ellenőrizni a feladatmegoldást")?
     };
     solution.zeroize();
-    is_solution_valid.or_forbidden("érvénytelen megoldás ehhez a feladathoz")?;
+    let is_correct = is_solution_valid;
 
     let mut teams_lock = TEAMS.write().await;
 
-    let team_solved = teams_lock
+    let team_attempts = teams_lock
         .get_mut(&username)
         .or_internal_server_error("nincs ehhez a csapatnévhez előrehaladás rendelve")?;
 
-    team_solved
-        .insert(puzzle_id)
+    (!team_has_solved_puzzle(team_attempts, &puzzle_id))
         .or_forbidden("ezt a feladatot már megoldottad")?;
+
+    team_attempts.push(SolveAttempt::now(puzzle_id, is_correct));
     drop(teams_lock);
 
     #[cfg(feature = "server_state_save")]
     tokio::spawn(state_save::save_state());
 
-    Ok(String::from("hurrá, sikeresen elmentettük a megoldásod!"))
+    if is_correct {
+        Ok(String::from("hurrá, sikeresen elmentettük a megoldásod!"))
+    } else {
+        HttpError::forbidden("érvénytelen megoldás ehhez a feladathoz")
+    }
 }
