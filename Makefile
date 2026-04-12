@@ -26,10 +26,11 @@ prepare-assets:
 	test -e assets/tailwind.css || touch assets/tailwind.css 
 
 serve:
-	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve ${dx-args}
+	# NOTE: consider disabling `--hot-patch` if it doesn't work
+	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve --hot-patch ${dx-args}
 
 serve-no-state:
-	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve --web
+	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve --hot-patch --web
 
 check: prepare-assets
 	cargo check --all-targets
@@ -75,6 +76,7 @@ server-build:
 	cp target/x86_64-unknown-linux-gnu/release/apollo apollo-server-x64-linux-gnu
 
 clean:
+	rm .user-*-apollo-sid.cookie | echo 'no sid-cookies to delete'
 	cargo clean
 
 help list:
