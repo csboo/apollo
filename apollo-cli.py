@@ -16,7 +16,7 @@ def usage():
     print(
         "usage: apollo-cli.py <command> [args...]\n"
         "\n"
-        "set_admin_password <password>\n"
+        "set_admin_password <initial_password> <password>\n"
         "create_puzzle <id> <solution> <password>\n"
         "join <username>\n"
         "auth_state <username>\n"
@@ -109,10 +109,10 @@ def extract_sid(set_cookie_headers):
 
 
 def cmd_set_admin_password(args):
-    if len(args) != 1:
+    if len(args) != 2:
         usage()
         raise SystemExit(1)
-    _, _, text = request_json("POST", "/set_admin_password", {"password": args[0]})
+    _, _, text = request_json("POST", "/set_admin_password", {"init_password": args[0], "password": args[1]})
     print_response_text(text)
 
 

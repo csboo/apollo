@@ -121,7 +121,11 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
 /// NOTE: might take a while, as it hashes the `password` and loads the state
 /// NOTE: use https
 #[post("/api/set_admin_password")]
-pub async fn set_admin_password(mut password: String) -> Result<String, HttpError> {
+pub async fn set_passwd(init_password: String, mut password: String) -> Result<String, HttpError> {
+    INIT_PWD
+        .eq(&init_password)
+        .or_forbidden("érvénytelen beállítási jelszó")?;
+
     check_admin_pwd()
         .is_err()
         .or_forbidden("már be van állítva a mesterjelszó")?;

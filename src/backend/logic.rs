@@ -25,6 +25,8 @@ pub(super) static SALT: LazyLock<[u8; 32]> = LazyLock::new(|| {
 });
 pub(super) static ARGON2CONF: LazyLock<argon2::Config> = LazyLock::new(argon2::Config::default);
 pub(super) static HASHED_PWD: OnceLock<Vec<u8>> = OnceLock::new();
+/// initial, generated password that's required to set actual admin-password [`HASHED_PWD`]
+pub static INIT_PWD: LazyLock<String> = LazyLock::new(|| Uuid::new_v4().to_string());
 pub(super) static EVENT_TITLE: LazyLock<Result<String, env::VarError>> =
     LazyLock::new(|| env::var("APOLLO_EVENT_TITLE"));
 
