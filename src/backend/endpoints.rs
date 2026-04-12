@@ -5,7 +5,6 @@ use dioxus::prelude::*;
 use {
     super::logic::*,
     dioxus::fullstack::{Cookie, TypedHeader},
-    jiff::Timestamp,
     uuid::Uuid,
     zeroize::Zeroize,
 };
@@ -220,15 +219,7 @@ pub async fn submit_solution(
     (!team_has_solved_puzzle(team_attempts, &puzzle_id))
         .or_forbidden("ezt a feladatot már megoldottad")?;
 
-    team_attempts.push(SolveAttempt {
-        puzzle_id,
-        attempted_at: Timestamp::now(),
-        state: if is_correct {
-            SolveAttemptState::Correct
-        } else {
-            SolveAttemptState::Incorrect
-        },
-    });
+    team_attempts.push(SolveAttempt::now(puzzle_id, is_correct));
     drop(teams_lock);
 
     #[cfg(feature = "server_state_save")]

@@ -22,17 +22,19 @@ pub type PuzzleSolutions = HashMap<PuzzleId, Puzzle>;
 
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 #[serde(crate = "dioxus::fullstack::serde")]
-pub enum SolveAttemptState {
-    Correct,
-    Incorrect,
-}
-
-#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-#[serde(crate = "dioxus::fullstack::serde")]
 pub struct SolveAttempt {
     pub puzzle_id: PuzzleId,
     pub attempted_at: Timestamp,
-    pub state: SolveAttemptState,
+    pub correct: bool,
+}
+impl SolveAttempt {
+    pub fn now(puzzle_id: PuzzleId, correct: bool) -> Self {
+        Self {
+            puzzle_id,
+            attempted_at: Timestamp::now(),
+            correct,
+        }
+    }
 }
 
 /// all solve attempts of a team
@@ -41,14 +43,14 @@ pub type TeamAttempts = Vec<SolveAttempt>;
 pub type TeamsState = HashMap<String, TeamAttempts>;
 
 pub fn team_has_solved_puzzle(team_attempts: &[SolveAttempt], puzzle_id: &str) -> bool {
-    team_attempts.iter().any(|attempt| {
-        attempt.puzzle_id == puzzle_id && matches!(attempt.state, SolveAttemptState::Correct)
-    })
+    team_attempts
+        .iter()
+        .any(|attempt| attempt.puzzle_id == puzzle_id && attempt.correct)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{SolveAttempt, SolveAttemptState, team_has_solved_puzzle};
+    use super::{SolveAttempt, team_has_solved_puzzle};
     use jiff::Timestamp;
 
     #[test]
@@ -57,12 +59,12 @@ mod tests {
             SolveAttempt {
                 puzzle_id: "p1".into(),
                 attempted_at: Timestamp::UNIX_EPOCH,
-                state: SolveAttemptState::Incorrect,
+                correct: false,
             },
             SolveAttempt {
                 puzzle_id: "p1".into(),
                 attempted_at: Timestamp::UNIX_EPOCH,
-                state: SolveAttemptState::Correct,
+                correct: true,
             },
         ];
 
