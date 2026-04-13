@@ -106,7 +106,6 @@ jobs:
 
     permissions:
       contents: write
-      actions: write # is it necessary?
 
     steps:
       - uses: actions/checkout@v6
@@ -123,6 +122,12 @@ jobs:
           echo "Generated on: $(date -u +"%Y-%m-%d %H:%M") UTC" >> ${{ env.tip_release_path }}
           cat ${{ env.tip_release_path }}
 
+      - name: Update the tip tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag --force tip && git push --force origin tag tip
+
       - name: Update the draft tip release
         uses: softprops/action-gh-release@v2
         with:
@@ -131,4 +136,3 @@ jobs:
           prerelease: true
           files: release-artifacts/*
           body_path: ${{ env.tip_release_path }}
-          target_commitish: ${{ github.sha }}
