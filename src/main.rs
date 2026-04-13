@@ -12,6 +12,7 @@ fn main() {
         use dioxus::prelude::*;
 
         info!("serving on http://{}", dx_server_addr());
+        info!("initial admin password: {:?}", *crate::backend::INIT_PWD);
 
         let router = dioxus::server::router(app::App);
         Ok(router)
