@@ -3,11 +3,23 @@ use dioxus::fullstack::{CborEncoding, SetCookie, SetHeader, Streaming};
 use dioxus::prelude::*;
 #[cfg(feature = "server")]
 use {
+    chacha20poly1305::aead::{OsRng, rand_core::RngCore},
     super::logic::*,
     dioxus::fullstack::{Cookie, TypedHeader},
     uuid::Uuid,
     zeroize::Zeroize,
 };
+
+#[cfg(feature = "server")]
+fn hash_puzzle_solution(raw_solution: &str) -> Result<PuzzleSolutionHash, HttpError> {
+    let mut salt = [0u8; 32];
+    OsRng.fill_bytes(&mut salt);
+    let hash = argon2::hash_encoded(raw_solution.as_bytes(), &salt, &ARGON2CONF)
+        .inspect_err(|e| error!("nem sikerült feladatmegoldást hasítani: {e}"))
+        .or_internal_server_error("nem sikerült feladatmegoldást hasítani");
+    salt.zeroize();
+    hash
+}
 
 #[get("/api/event_title")]
 pub async fn event_title() -> Result<String> {
@@ -157,7 +169,7 @@ pub async fn set_passwd(init_password: String, mut password: String) -> Result<S
 /// NOTE: if any of the solutions is incorrect, none will be saved
 #[post("/api/set_solution")]
 pub async fn set_solution(
-    puzzle_solutions: PuzzleSolutions,
+    mut puzzle_solutions: PuzzleSolutions,
     mut password: String,
 ) -> Result<String, HttpError> {
     // submitting as admin
@@ -175,6 +187,12 @@ pub async fn set_solution(
         .or_forbidden("legalább egy feladat már be van állítva")?;
     drop(puzzles_lock);
 
+    for puzzle in puzzle_solutions.values_mut() {
+        let solution_hash = hash_puzzle_solution(&puzzle.solution)?;
+        puzzle.solution.zeroize();
+        puzzle.solution = solution_hash;
+    }
+
     PUZZLES.write().await.extend(puzzle_solutions);
 
     #[cfg(feature = "server_state_save")]
@@ -191,7 +209,7 @@ pub async fn set_solution(
 #[post("/api/submit", cookies: TypedHeader<Cookie>)]
 pub async fn submit_solution(
     puzzle_id: PuzzleId,
-    solution: PuzzleSolution,
+    mut solution: PuzzleSolution,
 ) -> Result<String, HttpError> {
     check_admin_pwd()?;
     let uuid = extract_sid_cookie(cookies).await?;
@@ -202,13 +220,17 @@ pub async fn submit_solution(
         .or_not_found("nincs ezzel az azonosítóval csapat")?
         .clone(); // PERF: rather clone than lock
 
-    PUZZLES
-        .read()
-        .await
-        .get(&puzzle_id)
-        .or_not_found("nincs ezzel az azonosítóval feladat")?
-        .solution
-        .eq(&solution)
+    let is_solution_valid = {
+        let puzzles_lock = PUZZLES.read().await;
+        let puzzle = puzzles_lock
+            .get(&puzzle_id)
+            .or_not_found("nincs ezzel az azonosítóval feladat")?;
+        argon2::verify_encoded(&puzzle.solution, solution.as_bytes())
+            .inspect_err(|e| error!("nem sikerült ellenőrizni a feladatmegoldást: {e}"))
+            .or_internal_server_error("nem sikerült ellenőrizni a feladatmegoldást")?
+    };
+    solution.zeroize();
+    is_solution_valid
         .or_forbidden("érvénytelen megoldás ehhez a feladathoz")?;
 
     let mut teams_lock = TEAMS.write().await;
