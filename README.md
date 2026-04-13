@@ -45,7 +45,7 @@ And it's ready to take contestants, the hackathon can finally start!
 
 ## About
 
-Development started in 2025 by [@csboo] and [@jarjk], two elder students of the [Lovassy László Gimnázium] to have a nice little manager for the famous in-house, annual hackathon: <b>Kódfejtő</b>.
+Development started in 2025 by [@csboo] and [@jarjk], two elder students of the [Lovassy László Gimnázium] to have a nice little manager for the famous in-house, annual hackathon: **Kódfejtő**.
 
 ## Caveats (i.e. `apollo` is a WIP)
 
@@ -56,7 +56,7 @@ Development started in 2025 by [@csboo] and [@jarjk], two elder students of the 
 
 `Apollo` is written using [`dioxus`] (a React-like framework for/in [Rust]), styled with [`tailwindcss`].
 To be able to contribute, [Rust] knowledge is most certainly necessary, go ahead and read the [amazing rustbook], afterward familirialise yourself with the [`dioxus` guide].
-Also make sure to [open an issue] or reach out to us (somehow), before opening a PR ([here's a guide] for complete rookies) to make sure it aligns with our <i>unwritten</i> goals.
+Also make sure to [open an issue] or reach out to us (somehow), before opening a PR ([here's a guide] for complete rookies) to make sure it aligns with our *unwritten* goals.
 Definitely try to read the code and see whether you can understand it, we strive to write readable, easy-to-understand code.
 
 [`apollo-cli.py`] is a manual CLI (mocker) client for testing the backend/server. See `./apollo-cli.py help`.
