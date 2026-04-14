@@ -3,8 +3,8 @@ use dioxus::fullstack::{CborEncoding, SetCookie, SetHeader, Streaming};
 use dioxus::prelude::*;
 #[cfg(feature = "server")]
 use {
-    chacha20poly1305::aead::{OsRng, rand_core::RngCore},
     super::logic::*,
+    chacha20poly1305::aead::{OsRng, rand_core::RngCore},
     dioxus::fullstack::{Cookie, TypedHeader},
     uuid::Uuid,
     zeroize::Zeroize,
@@ -230,8 +230,7 @@ pub async fn submit_solution(
             .or_internal_server_error("nem sikerült ellenőrizni a feladatmegoldást")?
     };
     solution.zeroize();
-    is_solution_valid
-        .or_forbidden("érvénytelen megoldás ehhez a feladathoz")?;
+    is_solution_valid.or_forbidden("érvénytelen megoldás ehhez a feladathoz")?;
 
     let mut teams_lock = TEAMS.write().await;
 
