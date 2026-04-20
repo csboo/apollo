@@ -34,8 +34,8 @@ pub fn handle_user_join(
                 Ok(_) => {
                     popup_success(toast_api, format!("Üdv, {u}"));
                     auth.write().joined = true; // TODO auth.reset(_somefield)
+                    auth.write().init_password = String::new();
                     auth.write().password = String::new();
-                    auth.write().show_password_prompt = false;
                 }
                 Err(e) => popup_error(toast_api, e),
             }
@@ -49,23 +49,25 @@ pub fn handle_admin_join(
 ) -> impl FnMut(Event<MouseData>) + 'static {
     move |_| {
         spawn(async move {
-            if !auth.read().validate_username(toast_api) {
-                return;
-            }
-
-            auth.write().is_admin = true;
-            auth.write().show_password_prompt = true;
-
-            // If password is empty, don't proceed yet
-            if auth.read().validate_password(toast_api) {
+            let should_have_initial = crate::backend::endpoints::contestant_ready().await.is_ok();
+            let res = if should_have_initial && auth.read().validate_password(toast_api) {
                 let auth_curr = auth.read().clone();
-                match crate::backend::endpoints::set_admin_password(auth_curr.password).await {
-                    Ok(msg) => {
-                        auth.write().joined = true;
-                        popup_normal(toast_api, msg);
-                    }
-                    Err(e) => popup_error(toast_api, e),
+                crate::backend::endpoints::admin_auth_state(auth_curr.password).await
+            } else
+            // If password is empty, don't proceed yet
+            if auth.read().validate_admin(toast_api) {
+                let auth_curr = auth.read().clone();
+                crate::backend::endpoints::set_passwd(auth_curr.init_password, auth_curr.password)
+                    .await
+            } else {
+                HttpError::internal_server_error("brrr")
+            };
+            match res {
+                Ok(msg) => {
+                    auth.write().joined = true;
+                    popup_normal(toast_api, msg);
                 }
+                Err(e) => popup_error(toast_api, e),
             }
         }); // spawn async move
     } // move

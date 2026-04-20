@@ -55,7 +55,7 @@ pub fn Home() -> Element {
 
             } // div: other-container
 
-            div { class: "table-container mt-5 overflow-x-auto", style: "-webkit-overflow-scrolling: touch;",
+            div { class: "table-container mt-5", style: "-webkit-overflow-scrolling: touch;",
                 home::ScoreTable {
                     puzzles: puzzles,
                     teams_state: teams_state,

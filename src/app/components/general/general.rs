@@ -6,28 +6,36 @@ use crate::{
     app::home::{AuthState, actions},
 };
 
-#[derive(Clone, PartialEq)]
-pub enum UserType {
-    Admin,
-    Player,
-}
-
 #[component]
-pub fn Login(mut auth: Signal<AuthState>, usertype: UserType) -> Element {
+pub fn Login(mut auth: Signal<AuthState>) -> Element {
     let toast_api = use_toast();
     let auth_current = auth.read().clone();
+    let mut is_contestant_ready = use_signal(|| false);
+    use_future(move || async move {
+        *is_contestant_ready.write() = crate::backend::endpoints::contestant_ready().await.is_ok()
+    });
 
     rsx! {
         // Join form
-        input { class: INPUT,
-            r#type: "text",
-            placeholder: if usertype == UserType::Admin { "Admin név" } else { "Csapatnév"},
-            value: "{auth_current.username}",
-            cursor: "text",
-            oninput: move |evt| auth.write().username = evt.value()
-        }
-
-        if auth_current.show_password_prompt {
+        if !auth.read().is_admin {
+            input { class: INPUT,
+                r#type: "text",
+                placeholder: "Csapatnév",
+                value: "{auth_current.username}",
+                cursor: "text",
+                oninput: move |evt| auth.write().username = evt.value()
+            }
+            button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_user_join(auth, toast_api), "Belépés" }
+        } else {
+            if !*is_contestant_ready.read() {
+                input { class: "{INPUT}",
+                    r#type: "password",
+                    placeholder: "Elsődleges admin jelszó",
+                    value: "{auth_current.init_password}",
+                    cursor: "text",
+                    oninput: move |evt| auth.write().init_password = evt.value()
+                }
+            }
             input { class: "{INPUT}",
                 r#type: "password",
                 placeholder: "Admin jelszó",
@@ -35,12 +43,7 @@ pub fn Login(mut auth: Signal<AuthState>, usertype: UserType) -> Element {
                 cursor: "text",
                 oninput: move |evt| auth.write().password = evt.value()
             }
-        }
-
-        if usertype == UserType::Admin {
             button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_admin_join(auth, toast_api), "Belépés" }
-        } else {
-            button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_user_join(auth, toast_api), "Belépés" }
         }
     }
 }

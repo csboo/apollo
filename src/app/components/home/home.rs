@@ -4,7 +4,6 @@ use dioxus_primitives::toast::use_toast;
 use crate::{
     app::components::{
         self,
-        general::UserType::Player,
         tailwind_constants::{BUTTON, FLASH, INPUT},
     },
     app::home::{AuthState, actions},
@@ -13,10 +12,8 @@ use crate::{
 
 #[component]
 pub fn Login(mut auth: Signal<AuthState>) -> Element {
-    rsx!(components::general::Login {
-        auth,
-        usertype: Player
-    })
+    auth.write().is_admin = false;
+    rsx!(components::general::Login { auth })
 }
 
 #[component]

@@ -4,7 +4,6 @@ use dioxus_primitives::toast::use_toast;
 use crate::{
     app::components::{
         self,
-        general::UserType::Admin,
         tailwind_constants::{BUTTON, CSV_INPUT, FLASH, INPUT},
     },
     app::home::{AuthState, actions},
@@ -13,10 +12,8 @@ use crate::{
 
 #[component]
 pub fn Login(mut auth: Signal<AuthState>) -> Element {
-    rsx!(components::general::Login {
-        auth,
-        usertype: Admin
-    })
+    auth.write().is_admin = true;
+    rsx!(components::general::Login { auth })
 }
 
 #[component]
@@ -53,14 +50,6 @@ pub fn TaskManager(
             value: "{puzzle_value}",
             cursor: "text",
             oninput: move |evt| puzzle_value.set(evt.value())
-        }
-
-        input { class: "{INPUT}",
-            r#type: "password",
-            placeholder: "Admin jelszó",
-            value: "{auth_current.password}",
-            cursor: "text",
-            oninput: move |evt| auth.write().password = evt.value()
         }
 
         input { class: "{CSV_INPUT}",
