@@ -1,76 +1,77 @@
 .normal .others-container {
-    display: block;
+  display: block;
 }
 
 .table-only .others-container {
-    display: none !important;
+  display: none !important;
 }
 
 .table-only .table-container table {
-    position: fixed;
-    margin: auto;
-    inset: 0;
-    width: 80vw;
-    height: 80vh;
+  position: fixed;
+  margin: auto;
+  inset: 0;
+  width: 80vw;
+  height: 80vh;
 }
 
 .loading {
-    position: fixed;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    width: 100vw;
-    height: 100vh;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  height: 100vh;
 }
 
 #msgerr.popup {
-    border: solid 2px darkred;
+  border: solid 2px darkred;
 }
 
 #msgnorm.popup {
-    border: solid 2px steelblue;
+  border: solid 2px steelblue;
 }
 
 .popup {
-    width: auto;
-    height: auto;
-    position: fixed;
-    top: 30px;
-    right: 30px;
-    background: #333;
-    color: white;
-    padding: 18px 30px;
-    font-size: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    animation:
-        fadein 0.2s ease-out,
-        fadeout 0.3s ease-in 2.7s forwards;
+  width: auto;
+  height: auto;
+  position: fixed;
+  top: 30px;
+  right: 30px;
+  background: #333;
+  color: white;
+  padding: 18px 30px;
+  font-size: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation:
+    fadein 0.2s ease-out,
+    fadeout 0.3s ease-in 2.7s forwards;
 }
 
 @keyframes fadein {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fadeout {
-    to {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
 body {
-    background-color: var(--bg);
-    color: var(--light1);
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    margin: 20px;
+  background-color: var(--bg);
+  color: var(--light1);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 20px;
 }
 
 /* App-wide styling */
@@ -78,13 +79,13 @@ table,
 th,
 td,
 tr {
-    border: solid 2px var(--middle);
-    border-collapse: collapse;
-    color: var(--light1);
+  border: solid 2px var(--middle);
+  border-collapse: collapse;
+  color: var(--light1);
 }
 
 td {
-    min-width: 10rem;
-    height: 50px;
-    /*text-align: center;*/
+  min-width: 10rem;
+  height: 50px;
+  /*text-align: center;*/
 }

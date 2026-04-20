@@ -51,8 +51,6 @@ pub async fn auth_state() -> Result<String, HttpError> {
 /// We'll return a `SetCookie` header if the login is successful.
 ///
 /// This will set a cookie in the user's browser that can be used for subsequent authenticated requests.
-///
-/// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
 #[post("/api/join", cookies: TypedHeader<Cookie>)]
 pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
     check_admin_pwd()?;
@@ -89,8 +87,6 @@ pub async fn join(username: String) -> Result<SetHeader<SetCookie>, HttpError> {
 /// otherwise preserve team progress for future relogins
 ///
 /// returns empty, expired `sid` `SetCookie` header => browser deletes the valid one => user's now deauthed
-///
-/// WARN: **always** returns `Some(Ok(SetHeader { data: None }))`, see <https://github.com/DioxusLabs/dioxus/issues/5089>
 #[post("/api/logout", cookies: TypedHeader<Cookie>)]
 pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>, HttpError> {
     check_admin_pwd()?;
@@ -125,7 +121,11 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
 /// NOTE: might take a while, as it hashes the `password` and loads the state
 /// NOTE: use https
 #[post("/api/set_admin_password")]
-pub async fn set_admin_password(mut password: String) -> Result<String, HttpError> {
+pub async fn set_passwd(init_password: String, mut password: String) -> Result<String, HttpError> {
+    INIT_PWD
+        .eq(&init_password)
+        .or_forbidden("érvénytelen beállítási jelszó")?;
+
     check_admin_pwd()
         .is_err()
         .or_forbidden("már be van állítva a mesterjelszó")?;

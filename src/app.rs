@@ -11,9 +11,9 @@ use crate::routes::ApolloRoutes;
 use components::toast::ToastProvider;
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
+const MAIN_CSS: Asset = asset!("/assets/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const DX_CSS: Asset = asset!("/assets/dx-components-theme.css");
-// const MAIN_CSS: Asset = asset!("/assets/main.css");
 
 #[component]
 pub fn App() -> Element {
