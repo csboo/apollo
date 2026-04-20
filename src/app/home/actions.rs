@@ -30,10 +30,9 @@ pub fn handle_user_join(
                 return;
             }
 
-            let _ok_none = crate::backend::endpoints::join(u.clone()).await;
-            match crate::backend::endpoints::auth_state().await {
-                Ok(uname) => {
-                    popup_success(toast_api, format!("Üdv, {}", uname));
+            match crate::backend::endpoints::join(u.clone()).await {
+                Ok(_) => {
+                    popup_success(toast_api, format!("Üdv, {u}"));
                     auth.write().joined = true; // TODO auth.reset(_somefield)
                     auth.write().password = String::new();
                     auth.write().show_password_prompt = false;
