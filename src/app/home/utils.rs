@@ -65,25 +65,23 @@ pub fn parse_puzzle_csv(csv_text: &str, toast_api: Toasts) -> PuzzleSolutions {
     puzzles
 }
 
-pub fn popup_error(toast_api: Toasts, text: impl std::fmt::Display) {
-    toast_api.error(
-        "".to_string(),
-        ToastOptions::new()
-            .description(text)
-            .duration(Duration::from_secs(3))
-            .permanent(false),
-    );
+macro_rules! gen_toast {
+    ($func_name:ident, $kind:ident, title: $title:literal, timeout: $timeout:expr) => {
+        pub fn $func_name(toast_api: Toasts, text: impl std::fmt::Display) {
+            toast_api.$kind(
+                $title.to_string(),
+                ToastOptions::new()
+                    .description(text)
+                    .duration(Duration::from_secs($timeout))
+                    .permanent(false),
+            );
+        }
+    };
 }
 
-pub fn popup_normal(toast_api: Toasts, text: impl std::fmt::Display) {
-    toast_api.info(
-        "".to_string(),
-        ToastOptions::new()
-            .description(text)
-            .duration(Duration::from_secs(3))
-            .permanent(false),
-    );
-}
+gen_toast!(popup_normal, info, title: "Info", timeout: 5);
+gen_toast!(popup_success, success, title: "Siker", timeout: 6);
+gen_toast!(popup_error, error, title: "Hiba", timeout: 12);
 
 pub fn get_points_of(team: &(String, SolvedPuzzles), puzzles: Vec<(PuzzleId, PuzzleValue)>) -> u32 {
     puzzles
