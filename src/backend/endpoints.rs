@@ -209,10 +209,12 @@ pub async fn submit_solution(
         .clone(); // PERF: rather clone than lock
 
     let is_solution_valid = {
-        let puzzles_lock = PUZZLES.read().await;
-        let puzzle = puzzles_lock
+        let puzzle = PUZZLES
+            .read()
+            .await
             .get(&puzzle_id)
-            .or_not_found("nincs ezzel az azonosítóval feladat")?;
+            .or_not_found("nincs ezzel az azonosítóval feladat")?
+            .clone(); // PERF: verification is relatively slow, clone instead of locking
         argon2::verify_encoded(&puzzle.solution, solution.as_bytes())
             .inspect_err(|e| error!("nem sikerült ellenőrizni a feladatmegoldást: {e}"))
             .or_internal_server_error("nem sikerült ellenőrizni a feladatmegoldást")?
