@@ -4,22 +4,10 @@ use dioxus::prelude::*;
 #[cfg(feature = "server")]
 use {
     super::logic::*,
-    chacha20poly1305::aead::{OsRng, rand_core::RngCore},
     dioxus::fullstack::{Cookie, TypedHeader},
     uuid::Uuid,
     zeroize::Zeroize,
 };
-
-#[cfg(feature = "server")]
-fn hash_puzzle_solution(raw_solution: &str) -> Result<PuzzleSolutionHash, HttpError> {
-    let mut salt = [0u8; 32];
-    OsRng.fill_bytes(&mut salt);
-    let hash = argon2::hash_encoded(raw_solution.as_bytes(), &salt, &ARGON2CONF)
-        .inspect_err(|e| error!("nem sikerült feladatmegoldást hasítani: {e}"))
-        .or_internal_server_error("nem sikerült feladatmegoldást hasítani");
-    salt.zeroize();
-    hash
-}
 
 #[get("/api/event_title")]
 pub async fn event_title() -> Result<String> {
