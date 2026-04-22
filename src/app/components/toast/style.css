@@ -99,8 +99,8 @@
     animation: slide-in 0.25s ease-out;
 }
 
-.toast-container:hover .toast[data-top],
-.toast-container:focus-within .toast[data-top] {
+.toast-container:has(.toast-item + .toast-item):hover .toast[data-top],
+.toast-container:has(.toast-item + .toast-item):focus-within .toast[data-top] {
     animation: none;
 }
 
@@ -115,8 +115,8 @@
     }
 }
 
-.toast-container:hover .toast,
-.toast-container:focus-within .toast {
+.toast-container:has(.toast-item + .toast-item):hover .toast,
+.toast-container:has(.toast-item + .toast-item):focus-within .toast {
     margin-bottom: var(--space-1);
     filter: brightness(1);
     opacity: 1;
