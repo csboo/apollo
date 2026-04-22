@@ -13,6 +13,7 @@ use crate::{
 };
 
 // TODO could be handled better
+// deprecated
 fn check_admin_username(username: String) -> bool {
     // use std::env;
     let admin_username = "admin";
@@ -195,8 +196,7 @@ pub fn toggle_fullscreen(
 ) -> impl FnMut(Event<MouseData>) + 'static {
     move |_| {
         trace!("fullscreen toggle called");
-        let fullscreen_current = *is_fullscreen.read();
-        is_fullscreen.set(!fullscreen_current);
+        is_fullscreen.set(!is_fullscreen());
     }
 }
 

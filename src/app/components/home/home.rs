@@ -5,7 +5,7 @@ use crate::{
     app::components::{
         self,
         general::UserType::Player,
-        tailwind_constants::{BUTTON, FLASH, INPUT},
+        tailwind_constants::{BUTTON, INPUT, SELECT},
     },
     app::home::{AuthState, actions},
     backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles},
@@ -42,33 +42,42 @@ pub fn TaskManager(
         .flat_map(|solved| ref_puzzles.iter().filter(|(id, _)| !solved.contains(id)));
 
     rsx! {
-        select {
-            class: "{INPUT}",
-            cursor: "pointer",
-            onchange: move |evt: Event<FormData>| {
-                debug!("{}", evt.value());
-                puzzle_id.set(evt.value());
-            },
-            if puzzle_id.is_empty() {
-                option { disabled: true, selected: true, "Feladat kiválasztása" }
+        div { class: "space-y-1.5",
+            label { class: "block text-sm font-medium text-(--text-secondary)",
+                "Feladat"
             }
-            for (id, _) in selectopts {
-                option {
-                    cursor: "pointer",
-                    value: "{id}",
-                    "{id}"
+            select {
+                class: "{SELECT}",
+                onchange: move |evt: Event<FormData>| {
+                    debug!("{}", evt.value());
+                    puzzle_id.set(evt.value());
+                },
+                if puzzle_id.is_empty() {
+                    option { disabled: true, selected: true, "Válassz feladatot..." }
+                }
+                for (id, _) in selectopts {
+                    option { value: "{id}", "{id}" }
                 }
             }
         }
 
-        input { class: "{INPUT}",
-            r#type: "text",
-            placeholder: "Megoldás",
-            value: "{puzzle_solution}",
-            cursor: "text",
-            oninput: move |evt| puzzle_solution.set(evt.value())
+        div { class: "space-y-1.5",
+            label { class: "block text-sm font-medium text-(--text-secondary)",
+                "Megoldás"
+            }
+            input { class: "{INPUT}",
+                r#type: "text",
+                placeholder: "Add meg a megoldást",
+                value: "{puzzle_solution}",
+                oninput: move |evt| puzzle_solution.set(evt.value())
+            }
         }
 
-        button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_user_submit(puzzle_id, puzzle_solution, toast_api), "Küldés" }
+        div { class: "flex items-end",
+            button { class: "{BUTTON}",
+                onclick: actions::handle_user_submit(puzzle_id, puzzle_solution, toast_api),
+                "Beküldés"
+            }
+        }
     }
 }

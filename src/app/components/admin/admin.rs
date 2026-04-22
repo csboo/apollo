@@ -5,7 +5,7 @@ use crate::{
     app::components::{
         self,
         general::UserType::Admin,
-        tailwind_constants::{BUTTON, CSV_INPUT, FLASH, INPUT},
+        tailwind_constants::{BUTTON, CSV_INPUT, INPUT},
     },
     app::home::{AuthState, actions},
     backend::models::PuzzleSolutions,
@@ -31,46 +31,70 @@ pub fn TaskManager(
     let auth_current = auth.read().clone();
 
     rsx! {
-        input { class: "{INPUT}",
-            r#type: "text",
-            placeholder: "Feladat",
-            value: "{puzzle_id}",
-            cursor: "text",
-            oninput: move |evt| puzzle_id.set(evt.value())
+        div { class: "space-y-1.5",
+            label { class: "block text-sm font-medium text-(--text-secondary)",
+                "Feladat azonosító"
+            }
+            input { class: "{INPUT}",
+                r#type: "text",
+                placeholder: "pl. task-1",
+                value: "{puzzle_id}",
+                oninput: move |evt| puzzle_id.set(evt.value())
+            }
         }
 
-        input { class: "{INPUT}",
-            r#type: "text",
-            placeholder: "Megoldás",
-            value: "{puzzle_solution}",
-            cursor: "text",
-            oninput: move |evt| puzzle_solution.set(evt.value())
+        div { class: "space-y-1.5",
+            label { class: "block text-sm font-medium text-(--text-secondary)",
+                "Megoldás"
+            }
+            input { class: "{INPUT}",
+                r#type: "text",
+                placeholder: "Helyes válasz",
+                value: "{puzzle_solution}",
+                oninput: move |evt| puzzle_solution.set(evt.value())
+            }
         }
 
-        input { class: "{INPUT}",
-            r#type: "text",
-            placeholder: "Érték/Nyeremény",
-            value: "{puzzle_value}",
-            cursor: "text",
-            oninput: move |evt| puzzle_value.set(evt.value())
+        div { class: "space-y-1.5",
+            label { class: "block text-sm font-medium text-(--text-secondary)",
+                "Pontérték"
+            }
+            input { class: "{INPUT}",
+                r#type: "text",
+                placeholder: "pl. 100",
+                value: "{puzzle_value}",
+                oninput: move |evt| puzzle_value.set(evt.value())
+            }
         }
 
-        input { class: "{INPUT}",
-            r#type: "password",
-            placeholder: "Admin jelszó",
-            value: "{auth_current.password}",
-            cursor: "text",
-            oninput: move |evt| auth.write().password = evt.value()
+        div { class: "space-y-1.5",
+            label { class: "block text-sm font-medium text-(--text-secondary)",
+                "CSV import"
+            }
+            input { class: "{CSV_INPUT}",
+                r#type: "file",
+                r#accept: ".csv",
+                onchange: actions::handle_csv(parsed_puzzles, toast_api),
+            }
         }
 
-        input { class: "{CSV_INPUT}",
-            r#type: "file",
-            r#accept: ".csv",
-            cursor: "pointer",
-            onchange: actions::handle_csv(parsed_puzzles, toast_api),
+        div { class: "space-y-1.5",
+            label { class: "block text-sm font-medium text-(--text-secondary)",
+                "Admin jelszó"
+            }
+            input { class: "{INPUT}",
+                r#type: "password",
+                placeholder: "Jelszó megerősítése",
+                value: "{auth_current.password}",
+                oninput: move |evt| auth.write().password = evt.value()
+            }
         }
 
-    button { class: "{BUTTON} {FLASH}", cursor: "pointer", onclick: actions::handle_admin_submit(auth, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles, toast_api), "Beállítás" }
-
+        div { class: "flex items-end pt-2",
+            button { class: "{BUTTON}",
+                onclick: actions::handle_admin_submit(auth, puzzle_id, puzzle_value, puzzle_solution, parsed_puzzles, toast_api),
+                "Beállítás"
+            }
+        }
     }
 }
