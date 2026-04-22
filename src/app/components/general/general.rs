@@ -15,22 +15,23 @@ pub enum UserType {
 #[component]
 pub fn Login(mut auth: Signal<AuthState>, usertype: UserType) -> Element {
     let toast_api = use_toast();
-    let auth_current = auth.read().clone();
 
     rsx! {
-        div { class: "space-y-1.5",
-            label { class: "block text-sm font-medium text-(--text-secondary)",
-                if usertype == UserType::Admin { "Admin név" } else { "Csapatnév" }
-            }
-            input { class: INPUT,
-                r#type: "text",
-                placeholder: if usertype == UserType::Admin { "Add meg az admin nevet" } else { "Add meg a csapatnevet" },
-                value: "{auth_current.username}",
-                oninput: move |evt| auth.write().username = evt.value()
+        if usertype == UserType::Player {
+            div { class: "space-y-1.5",
+                label { class: "block text-sm font-medium text-(--text-secondary)",
+                    "Csapatnév"
+                }
+                input { class: INPUT,
+                    r#type: "text",
+                    placeholder: "Add meg a csapatnevet",
+                    value: "{auth().username}",
+                    oninput: move |evt| auth.write().username = evt.value()
+                }
             }
         }
 
-        if auth_current.show_password_prompt {
+        if usertype == UserType::Admin {
             div { class: "space-y-1.5",
                 label { class: "block text-sm font-medium text-(--text-secondary)",
                     "Jelszó"
@@ -38,7 +39,7 @@ pub fn Login(mut auth: Signal<AuthState>, usertype: UserType) -> Element {
                 input { class: "{INPUT}",
                     r#type: "password",
                     placeholder: "Add meg a jelszót",
-                    value: "{auth_current.password}",
+                    value: "{auth().password}",
                     oninput: move |evt| auth.write().password = evt.value()
                 }
             }
