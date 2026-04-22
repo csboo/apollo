@@ -5,6 +5,7 @@ use crate::app::home::utils::popup_error;
 #[derive(Default, Clone, PartialEq)]
 pub struct AuthState {
     pub(crate) username: String,
+    pub(crate) init_password: String,
     pub(crate) password: String,
     pub(crate) joined: bool,
 }
@@ -24,6 +25,13 @@ impl AuthState {
         }
         true
     }
+    pub fn validate_init_password(&self, toast_api: Toasts) -> bool {
+        if self.init_password.is_empty() {
+            popup_error(toast_api, "A beállítási jelszó nem lehet üres");
+            return false;
+        }
+        true
+    }
 
     // TODO more validation (everywhere)
     // pub fn validate(&self, toast_api: Toasts) -> bool {
@@ -36,4 +44,7 @@ impl AuthState {
 
     //     true
     // }
+    pub fn validate_admin(&self, toast_api: Toasts) -> bool {
+        self.validate_init_password(toast_api) && self.validate_password(toast_api)
+    }
 }

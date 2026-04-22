@@ -15,6 +15,10 @@ pub enum UserType {
 #[component]
 pub fn Login(mut auth: Signal<AuthState>, usertype: UserType) -> Element {
     let toast_api = use_toast();
+    let mut is_contestant_ready = use_signal(|| false);
+    use_future(move || async move {
+        *is_contestant_ready.write() = crate::backend::endpoints::contestant_ready().await.is_ok()
+    });
 
     rsx! {
         if usertype == UserType::Player {
@@ -35,6 +39,15 @@ pub fn Login(mut auth: Signal<AuthState>, usertype: UserType) -> Element {
             div { class: "space-y-1.5",
                 label { class: "block text-sm font-medium text-(--text-secondary)",
                     "Jelszó"
+                }
+                if !*is_contestant_ready.read() {
+                    input { class: "{INPUT}",
+                        r#type: "password",
+                        placeholder: "Elsődleges admin jelszó",
+                        value: "{auth().init_password}",
+                        cursor: "text",
+                        oninput: move |evt| auth.write().init_password = evt.value()
+                    }
                 }
                 input { class: "{INPUT}",
                     r#type: "password",

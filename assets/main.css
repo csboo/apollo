@@ -1,10 +1,10 @@
 /* Layout modes */
 .normal .others-container {
-    display: block;
+  display: block;
 }
 
 .table-only .others-container {
-    display: none !important;
+  display: none !important;
 }
 
 /* Fullscreen table overlay */

@@ -1,41 +1,95 @@
-APOLLO_EVENT_TITLE?=hack-a-polo
+NATIVE_TARGET:=$(shell rustup show | grep 'Default host: ' | sed 's/Default host: //')
+EVENT_TITLE?=hack-a-polo
+TARGET?=${NATIVE_TARGET}
+PROFILE?=debug
+CARGO_HACK_FEAT_ARGS:=--feature-powerset \
+	--mutually-exclusive-features desktop,mobile \
+	--mutually-exclusive-features desktop,web \
+	--mutually-exclusive-features web,mobile
 
-dx-args:=@server --server --features server_state_save @client --web
+target-arg := --target ${TARGET}
+dx-server-args := --no-default-features --features server_state_save --server ${target-arg}
+dx-client-args := --no-default-features --web
+dx-args:=@server ${dx-server-args} @client ${dx-client-args}
+dist_p := target/dist
+dx_c_p := target/dx
+bin_ext := $(if $(findstring windows,${TARGET}),.exe,)
+
+ifeq (${PROFILE},release)
+profile-arg:=--release
+endif
+
+default: serve
+
+prepare-assets:
+	# `asset!()` needs this...
+	test -e assets/tailwind.css || touch assets/tailwind.css 
 
 serve:
-	APOLLO_EVENT_TITLE=${APOLLO_EVENT_TITLE} dx serve ${dx-args}
+	# NOTE: consider disabling `--hot-patch` if it doesn't work
+	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve --hot-patch ${dx-args}
 
 serve-no-state:
-	APOLLO_EVENT_TITLE=${APOLLO_EVENT_TITLE} dx serve --web
+	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve --hot-patch --web
 
-build:
-	dx bundle ${dx-args}
+check: prepare-assets
+	cargo check --all-targets
+	cargo check -F server_state_save
+	cargo check -F web --target wasm32-unknown-unknown
 
-web-bundle:
-	-rm -r web-apollo.zip target/dx # would bloat otherwise
-	dx bundle --release ${dx-args}
-	cp -r target/dx/apollo/release/web/public .
-	-rm web-apollo.zip
-	zip web-apollo public/* public/assets/*
-	rm -r public
-	unzip -l web-apollo.zip
+check-all: prepare-assets
+	cargo hack check ${CARGO_HACK_FEAT_ARGS} --no-dev-deps ${target-arg} --verbose
+
+check-ci: 
+	actionlint -verbose .github/workflows/**.yml
+
+clippy: prepare-assets
+	cargo clippy --no-deps
+
+clippy-all: prepare-assets
+	cargo hack clippy ${CARGO_HACK_FEAT_ARGS} ${target-arg} --all-targets --no-deps --verbose
+
+format fmt:
+	dx fmt
+	cargo fmt
+
+fmt-check format-check:
+	cargo fmt --all --check --verbose
+	dx fmt --check --verbose || echo "dx fmt isn't quite stable yet, don't worry much about it"
+
+strict-check: check check-all clippy clippy-all fmt-check
+
+bundle: prepare-assets
+	rm -r ${dist_p} ${dx_c_p} || echo "deleting cache, would bloat otherwise"
+	dx bundle --debug-symbols=false --verbose --out-dir ${dist_p} ${profile-arg} ${dx-args}
+
+	# rename `server` to include app name and optional extension
+	mv ${dist_p}/server ${dist_p}/apollo-server${bin_ext} || echo "same file, not moving"
+	# rename to include platform
+	tar -C ${dist_p} -cvf ${dist_p}/apollo-web-${TARGET}.tar apollo-server${bin_ext} public/
+	tar -tf ${dist_p}/apollo-web-${TARGET}.tar
 
 server-build:
 	@echo 'probably `ulimit -n 1024`' # needed on my mac for sure
+	# NOTE: think of this command as a reference
 	cargo zigbuild --release --target x86_64-unknown-linux-gnu --no-default-features --features server_state_save,web
-	cp target/x86_64-unknown-linux-gnu/release/apollo apollo-x86_64-linux-gnu
-
-bundle: web-bundle server-build
-	@echo "scp apollo-x86_64-linux-gnu web-apollo.zip <target>"
+	cp target/x86_64-unknown-linux-gnu/release/apollo apollo-server-x64-linux-gnu
 
 clean:
+	rm .user-*-apollo-sid.cookie | echo 'no sid-cookies to delete'
 	cargo clean
 
 help list:
-	@echo "*serve*: build, run and reload on changes"
-	@echo "serve-no-state: build, run and reload on changes, don't save server state"
-	@echo "build: bundle in debug mode"
-	@echo "web-bundle: bundle the web-client"
-	@echo "server-build: build in release mode for x64-linux"
-	@echo "bundle: web-bundle and server-build"
+	@echo "*serve* [TARGET=]: build, run and reload on changes"
+	@echo "serve-no-state [TARGET=]: build, run and reload on changes, don't persist server state"
+	@echo "check: quick check whether code would compile"
+	@echo "check-all [TARGET=]: same, with all reasonable feature-combinations"
+	@echo "check-ci: validate github actions"
+	@echo "clippy: quick clippy checks"
+	@echo "clippy-all: same, with all reasonable feature-combinations"
+	@echo "format|fmt: format code (rsx macros as well)"
+	@echo "fmt-check: verify formatting (hopefully without modifying files)"
+	@echo "strict-check: all checks from above"
+	@echo "bundle [TARGET=, PROFILE=debug|release]: bundle apollo for the web"
+	@echo "server-build: cross-compile server binary in release mode for x64-linux-gnu"
 	@echo "clean: clean target"

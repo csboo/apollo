@@ -5,7 +5,7 @@ use crate::{
     app::home::{
         models::AuthState,
         utils::{
-            parse_puzzle_csv, popup_error, popup_normal, validate_puzzle_id,
+            parse_puzzle_csv, popup_error, popup_normal, popup_success, validate_puzzle_id,
             validate_puzzle_solution, validate_puzzle_value,
         },
     },
@@ -22,19 +22,14 @@ pub fn handle_user_join(
                 return;
             }
 
-            let _ok_none = crate::backend::endpoints::join(auth().username).await;
-            match crate::backend::endpoints::auth_state().await {
-                Ok(uname) => {
-                    popup_normal(toast_api, format!("Üdv, {}", uname));
+            match crate::backend::endpoints::join(auth().username).await {
+                Ok(_) => {
+                    popup_success(toast_api, format!("Üdv, {}", auth.read().username));
                     auth.write().joined = true; // TODO auth.reset(_somefield)
+                    auth.write().init_password = String::new();
                     auth.write().password = String::new();
                 }
-                Err(e) => {
-                    popup_error(
-                        toast_api,
-                        format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
-                    );
-                }
+                Err(e) => popup_error(toast_api, e),
             }
         }); // spawn async move
     } // move
@@ -46,20 +41,26 @@ pub fn handle_admin_join(
 ) -> impl FnMut(Event<MouseData>) + 'static {
     move |_| {
         spawn(async move {
-            // password validation
             if !auth.read().validate_password(toast_api) {
                 return;
             }
 
-            match crate::backend::endpoints::set_admin_password(auth().password).await {
+            let should_have_initial = crate::backend::endpoints::contestant_ready().await.is_ok();
+            let res = if should_have_initial {
+                crate::backend::endpoints::admin_auth_state(auth().password).await
+            } else {
+                if !auth.read().validate_init_password(toast_api) {
+                    return;
+                }
+                crate::backend::endpoints::set_passwd(auth().init_password, auth().password).await
+            };
+
+            match res {
                 Ok(msg) => {
                     auth.write().joined = true;
                     popup_normal(toast_api, msg);
                 }
-                Err(e) => popup_error(
-                    toast_api,
-                    format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
-                ),
+                Err(e) => popup_error(toast_api, e),
             }
         }); // spawn async move
     } // move
@@ -89,7 +90,7 @@ pub fn handle_user_submit(
                     puzzle_solution.set(String::new());
                 }
                 Err(e) => {
-                    popup_error(toast_api, format!("Hiba: {}", e));
+                    popup_error(toast_api, e);
                 }
             }
         });
@@ -145,10 +146,7 @@ pub fn handle_admin_submit(
                     // password.set(String::new()); NOTE should remember password?
                 }
                 Err(e) => {
-                    popup_error(
-                        toast_api,
-                        format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
-                    );
+                    popup_error(toast_api, e);
                 }
             }
         });
@@ -201,10 +199,7 @@ pub fn handle_logout(
                     auth.set(AuthState::default());
                 }
                 Err(e) => {
-                    popup_error(
-                        toast_api,
-                        format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
-                    );
+                    popup_error(toast_api, e);
                 }
             }
         });

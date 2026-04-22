@@ -58,6 +58,7 @@ pub fn Home() -> Element {
             if is_fullscreen() {
                 div { class: "table-overlay",
                     div { class: "table-window",
+                        // TODO this maybe needed somewhere here style: "-webkit-overflow-scrolling: touch;"
                         div { class: "table-viewport",
                             home::ScoreTable {
                                 puzzles: puzzles,
