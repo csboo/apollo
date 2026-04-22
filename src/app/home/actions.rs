@@ -12,14 +12,6 @@ use crate::{
     backend::models::{Puzzle, PuzzleSolutions},
 };
 
-// TODO could be handled better
-// deprecated
-fn check_admin_username(username: String) -> bool {
-    // use std::env;
-    let admin_username = "admin";
-    username == admin_username
-}
-
 pub fn handle_user_join(
     mut auth: Signal<AuthState>,
     toast_api: Toasts,

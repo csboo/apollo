@@ -30,18 +30,19 @@ pub const BUTTON_RED: &str = "
     active:scale-[0.98]
 ";
 
-/// Secondary button - ghost style
-pub const BUTTON_SECONDARY: &str = "
-    inline-flex items-center justify-center gap-2
-    h-11 px-6
-    rounded-lg
-    bg-transparent hover:bg-(--bg-surface)
-    text-(--text-primary) font-medium text-sm
-    border border-(--border-default) hover:border-(--border-strong)
-    transition-all duration-200
-    focus:outline-none focus:ring-2 focus:ring-(--accent-primary)/50 focus:ring-offset-2 focus:ring-offset-(--bg)
-    active:scale-[0.98]
-";
+// Secondary button - ghost style
+// deprecated
+// pub const BUTTON_SECONDARY: &str = "
+//     inline-flex items-center justify-center gap-2
+//     h-11 px-6
+//     rounded-lg
+//     bg-transparent hover:bg-(--bg-surface)
+//     text-(--text-primary) font-medium text-sm
+//     border border-(--border-default) hover:border-(--border-strong)
+//     transition-all duration-200
+//     focus:outline-none focus:ring-2 focus:ring-(--accent-primary)/50 focus:ring-offset-2 focus:ring-offset-(--bg)
+//     active:scale-[0.98]
+// ";
 
 /// Text input - clean and functional
 pub const INPUT: &str = "
@@ -88,36 +89,40 @@ pub const CSV_INPUT: &str = "
     file:hover:bg-(--accent-primary-hover)
 ";
 
-/// Subtle shine effect - refined
-pub const FLASH: &str = "
-    relative overflow-hidden
-    before:pointer-events-none before:absolute
-    before:inset-0
-    before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent
-    before:translate-x-[-200%]
-    before:transition-transform before:duration-700 before:ease-out
-    hover:before:translate-x-[200%]
-";
+// Subtle shine effect - refined
+// deprecated :(
+// pub const FLASH: &str = "
+//     relative overflow-hidden
+//     before:pointer-events-none before:absolute
+//     before:inset-0
+//     before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent
+//     before:translate-x-[-200%]
+//     before:transition-transform before:duration-700 before:ease-out
+//     hover:before:translate-x-[200%]
+// ";
 
-/// Card container
-pub const CARD: &str = "
-    p-6
-    rounded-xl
-    bg-(--bg-elevated)
-    border border-(--border-subtle)
-    shadow-lg
-";
+// Card container
+// deprecated
+// pub const CARD: &str = "
+//     p-6
+//     rounded-xl
+//     bg-(--bg-elevated)
+//     border border-(--border-subtle)
+//     shadow-lg
+// ";
 
-/// Section title
-pub const SECTION_TITLE: &str = "
-    text-2xl font-semibold
-    text-(--text-primary)
-    tracking-tight
-";
+// Section title
+// deprecated
+// pub const SECTION_TITLE: &str = "
+//     text-2xl font-semibold
+//     text-(--text-primary)
+//     tracking-tight
+// ";
 
-/// Form label
-pub const LABEL: &str = "
-    text-sm font-medium
-    text-(--text-secondary)
-    mb-2
-";
+// Form label
+// deprecated
+// pub const LABEL: &str = "
+//     text-sm font-medium
+//     text-(--text-secondary)
+//     mb-2
+// ";
