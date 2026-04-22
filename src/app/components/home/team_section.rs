@@ -2,10 +2,7 @@ use dioxus::prelude::*;
 use dioxus_primitives::toast::use_toast;
 
 use crate::{
-    app::components::{
-        alert_dialog::*, home::team_status::*, tailwind_constants::BUTTON_RED,
-        tailwind_constants::FLASH,
-    },
+    app::components::{alert_dialog::*, home::team_status::*, tailwind_constants::BUTTON_RED},
     app::home::{AuthState, actions::handle_logout, utils::get_points_of},
     backend::models::{PuzzleId, PuzzleValue, SolvedPuzzles},
 };
@@ -18,64 +15,63 @@ pub fn TeamSection(
     mut teams_state: Signal<Vec<(String, SolvedPuzzles)>>,
     puzzles: Signal<Vec<(PuzzleId, PuzzleValue)>>,
 ) -> Element {
-    let auth_current = auth.read().clone();
+    // let auth_current = auth.read().clone();
     let toast_api = use_toast();
     let points = teams_state
         .read()
         .iter()
-        .find(|(team, _)| team == &auth_current.username)
-        .map(|team| get_points_of(team, puzzles.read().clone()))
+        .find(|(team, _)| *team == auth().username)
+        .map(|team| get_points_of(team, puzzles()))
         .unwrap_or(0);
 
     rsx! {
-        div { class: "mt-5",
-            TeamStatus {
-                team: auth_current.username.clone(),
-                points: points,
-            }
+        // Team status
+        TeamStatus {
+            team: auth().username,
+            points: points,
         }
-        div { class: "mt-10",
-            button { class: "{BUTTON_RED} {FLASH}",
+
+        // Action buttons
+        div { class: "flex gap-3",
+            button { class: "{BUTTON_RED}",
                 onclick: move |_| logout_alert.set(true),
-                cursor: "pointer",
                 "Kijelentkezés"
             }
 
-            AlertDialogRoot { open: logout_alert(), on_open_change: move |v| logout_alert.set(v),
-                AlertDialogContent {
-                    AlertDialogTitle { "Delete item" }
-                    AlertDialogDescription {
-                        "Biztosan ki szeretnél lépni?"
-                        br {  }
-                        "(Később visszaléphetsz, eddigi progressziód megmarad)"
+            button { class: "{BUTTON_RED} opacity-70 hover:opacity-100",
+                onclick: move |_| delete_alert.set(true),
+                "Csapat törlése"
+            }
+        }
+
+        // Logout dialog
+        AlertDialogRoot { open: logout_alert(), on_open_change: move |v| logout_alert.set(v),
+            AlertDialogContent {
+                AlertDialogTitle { "Kijelentkezés" }
+                AlertDialogDescription {
+                    "Biztosan ki szeretnél lépni?"
+                    br {}
+                    span { class: "text-(--text-muted)",
+                        "Később visszaléphetsz, a progresszió megmarad."
                     }
-                    AlertDialogActions {
-                        AlertDialogCancel { "Mégsem" }
-                        AlertDialogAction { on_click: handle_logout(auth, toast_api, false), "Kilépés" }
-                    }
+                }
+                AlertDialogActions {
+                    AlertDialogCancel { "Mégsem" }
+                    AlertDialogAction { on_click: handle_logout(auth, toast_api, false), "Kilépés" }
                 }
             }
         }
-        div { class: "mt-2",
-            button { class: "{BUTTON_RED} {FLASH}",
-                onclick: move |_| delete_alert.set(true),
-                cursor: "pointer",
-                "Csapat törlése"
-            }
 
-            AlertDialogRoot { open: delete_alert(), on_open_change: move |v| delete_alert.set(v),
-                AlertDialogContent {
-                    AlertDialogTitle { "Delete item" }
-                    AlertDialogDescription {
-                        "Ez a funkció a csapat minden adatát ",
-                        strong { "véglegesen törli." }
-                        br {}
-                        "Biztosan folytatod?"
-                    }
-                    AlertDialogActions {
-                        AlertDialogCancel { "Mégsem" }
-                        AlertDialogAction { on_click: handle_logout(auth, toast_api, true), "Csapat Törlése" }
-                    }
+        // Delete dialog
+        AlertDialogRoot { open: delete_alert(), on_open_change: move |v| delete_alert.set(v),
+            AlertDialogContent {
+                AlertDialogTitle { "Csapat törlése" }
+                AlertDialogDescription {
+                    "Ez véglegesen törli a csapat minden adatát."
+                }
+                AlertDialogActions {
+                    AlertDialogCancel { "Mégsem" }
+                    AlertDialogAction { on_click: handle_logout(auth, toast_api, true), "Törlés" }
                 }
             }
         }
