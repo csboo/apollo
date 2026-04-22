@@ -67,7 +67,7 @@ pub fn parse_puzzle_csv(csv_text: &str, toast_api: Toasts) -> PuzzleSolutions {
 
 pub fn popup_error(toast_api: Toasts, text: impl std::fmt::Display) {
     toast_api.error(
-        "".to_string(),
+        "ERROR".to_string(),
         ToastOptions::new()
             .description(text)
             .duration(Duration::from_secs(3))
@@ -77,7 +77,7 @@ pub fn popup_error(toast_api: Toasts, text: impl std::fmt::Display) {
 
 pub fn popup_normal(toast_api: Toasts, text: impl std::fmt::Display) {
     toast_api.info(
-        "".to_string(),
+        "INFO".to_string(),
         ToastOptions::new()
             .description(text)
             .duration(Duration::from_secs(3))

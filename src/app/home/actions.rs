@@ -26,18 +26,16 @@ pub fn handle_user_join(
 ) -> impl FnMut(Event<MouseData>) + 'static {
     move |_| {
         spawn(async move {
-            let u = auth.read().username.clone();
             if !auth.read().validate_username(toast_api) {
                 return;
             }
 
-            let _ok_none = crate::backend::endpoints::join(u.clone()).await;
+            let _ok_none = crate::backend::endpoints::join(auth().username).await;
             match crate::backend::endpoints::auth_state().await {
                 Ok(uname) => {
                     popup_normal(toast_api, format!("Üdv, {}", uname));
                     auth.write().joined = true; // TODO auth.reset(_somefield)
                     auth.write().password = String::new();
-                    auth.write().show_password_prompt = false;
                 }
                 Err(e) => {
                     popup_error(
@@ -56,26 +54,20 @@ pub fn handle_admin_join(
 ) -> impl FnMut(Event<MouseData>) + 'static {
     move |_| {
         spawn(async move {
-            if !auth.read().validate_username(toast_api) {
+            // password validation
+            if !auth.read().validate_password(toast_api) {
                 return;
             }
 
-            auth.write().is_admin = true;
-            auth.write().show_password_prompt = true;
-
-            // If password is empty, don't proceed yet
-            if auth.read().validate_password(toast_api) {
-                let auth_curr = auth.read().clone();
-                match crate::backend::endpoints::set_admin_password(auth_curr.password).await {
-                    Ok(msg) => {
-                        auth.write().joined = true;
-                        popup_normal(toast_api, msg);
-                    }
-                    Err(e) => popup_error(
-                        toast_api,
-                        format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
-                    ),
+            match crate::backend::endpoints::set_admin_password(auth().password).await {
+                Ok(msg) => {
+                    auth.write().joined = true;
+                    popup_normal(toast_api, msg);
                 }
+                Err(e) => popup_error(
+                    toast_api,
+                    format!("Hiba: {}", e.message.unwrap_or("ismeretlen hiba".into())),
+                ),
             }
         }); // spawn async move
     } // move
