@@ -1,7 +1,7 @@
 use super::models::*;
-use chacha20poly1305::aead::{OsRng, rand_core::RngCore};
 use dioxus::fullstack::{Cookie, TypedHeader};
 use dioxus::prelude::*;
+use rand_core::{OsRng, RngCore};
 use std::sync::{LazyLock, OnceLock};
 use std::{collections::HashMap, env};
 use tokio::sync::RwLock;
@@ -18,11 +18,8 @@ pub(super) static TEAMS: LazyLock<RwLock<TeamsState>> =
     LazyLock::new(|| RwLock::new(TeamsState::new()));
 
 // SECURITY: it's fine like this, right?
-pub(super) static SALT: LazyLock<[u8; 32]> = LazyLock::new(|| {
-    let mut salt = [0u8; 32];
-    OsRng.fill_bytes(&mut salt);
-    salt
-});
+pub(super) static SALT: LazyLock<[u8; 32]> = LazyLock::new(gen_salt);
+
 pub(super) static ARGON2CONF: LazyLock<argon2::Config> = LazyLock::new(argon2::Config::default);
 pub(super) static HASHED_PWD: OnceLock<Vec<u8>> = OnceLock::new();
 /// initial, generated password that's required to set actual admin-password [`HASHED_PWD`]
@@ -35,6 +32,18 @@ pub(super) fn check_admin_pwd() -> Result<&'static Vec<u8>, HttpError> {
     HASHED_PWD
         .get()
         .or_forbidden("még nincs beállítva mesterjelszó")
+}
+
+fn gen_salt() -> [u8; 32] {
+    let mut salt = [0u8; 32];
+    OsRng.fill_bytes(&mut salt);
+    salt
+}
+
+pub(super) fn hash_puzzle_solution(raw_solution: &str) -> Result<PuzzleSolutionHash, HttpError> {
+    argon2::hash_encoded(raw_solution.as_bytes(), &gen_salt(), &ARGON2CONF)
+        .inspect_err(|e| error!("nem sikerült hasítani egy feladatmegoldást: {e}"))
+        .or_internal_server_error("nem sikerült hasítani egy feladatmegoldást")
 }
 
 /// get a clone of state: `TEAMS` and `PUZZLES`
