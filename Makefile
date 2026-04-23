@@ -76,7 +76,8 @@ server-build:
 	cp target/x86_64-unknown-linux-gnu/release/apollo apollo-server-x64-linux-gnu
 
 clean:
-	rm .user-*-apollo-sid.cookie | echo 'no sid-cookies to delete'
+	rm .*-apollo-sid.cookie || echo 'no sid-cookies to delete'
+	rm apollo-state.cbor.encrypted || echo 'no default state-save to delete'
 	cargo clean
 
 help list:
