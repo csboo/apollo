@@ -178,7 +178,7 @@ pub async fn set_passwd(init_password: String, mut password: String) -> Result<S
 /// NOTE: if any of the solutions is incorrect, none will be saved
 #[post("/api/set_solution")]
 pub async fn set_solution(
-    puzzle_solutions: PuzzleSolutions,
+    mut puzzle_solutions: PuzzleSolutions,
     password: String,
 ) -> Result<String, HttpError> {
     // submitting as admin
@@ -190,6 +190,12 @@ pub async fn set_solution(
         .any(|new_k| !puzzles_lock.contains_key(new_k))
         .or_forbidden("legalább egy feladat már be van állítva")?;
     drop(puzzles_lock);
+
+    for puzzle in puzzle_solutions.values_mut() {
+        let solution_hash = hash_puzzle_solution(&puzzle.solution)?;
+        puzzle.solution.zeroize();
+        puzzle.solution = solution_hash;
+    }
 
     PUZZLES.write().await.extend(puzzle_solutions);
 
@@ -207,7 +213,7 @@ pub async fn set_solution(
 #[post("/api/submit", cookies: TypedHeader<Cookie>)]
 pub async fn submit_solution(
     puzzle_id: PuzzleId,
-    solution: PuzzleSolution,
+    mut solution: PuzzleSolution,
 ) -> Result<String, HttpError> {
     check_admin_pwd()?;
     let uuid = extract_sid_cookie(cookies).await?;
@@ -218,14 +224,19 @@ pub async fn submit_solution(
         .or_not_found("nincs ezzel az azonosítóval csapat")?
         .clone(); // PERF: rather clone than lock
 
-    PUZZLES
-        .read()
-        .await
-        .get(&puzzle_id)
-        .or_not_found("nincs ezzel az azonosítóval feladat")?
-        .solution
-        .eq(&solution)
-        .or_forbidden("érvénytelen megoldás ehhez a feladathoz")?;
+    let is_solution_valid = {
+        let puzzle = PUZZLES
+            .read()
+            .await
+            .get(&puzzle_id)
+            .or_not_found("nincs ezzel az azonosítóval feladat")?
+            .clone(); // PERF: verification is relatively slow, clone instead of locking
+        argon2::verify_encoded(&puzzle.solution, solution.as_bytes())
+            .inspect_err(|e| error!("nem sikerült ellenőrizni a feladatmegoldást: {e}"))
+            .or_internal_server_error("nem sikerült ellenőrizni a feladatmegoldást")?
+    };
+    solution.zeroize();
+    is_solution_valid.or_forbidden("érvénytelen megoldás ehhez a feladathoz")?;
 
     let mut teams_lock = TEAMS.write().await;
 

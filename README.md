@@ -32,6 +32,7 @@ And it's ready to take contestants, the hackathon can finally start!
 ## Security
 
 - We use [`Argon2`] for password-hashing.
+- Puzzle solutions are also stored as [`Argon2`] hashes (not raw plaintext).
 - State saving is encrypted with [`chacha20poly1305`] (based on [this great guide])
 
 > [!note]

@@ -5,7 +5,8 @@ use std::collections::{HashMap, HashSet};
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 #[serde(crate = "dioxus::fullstack::serde")]
 pub struct Puzzle {
-    pub solution: PuzzleSolution,
+    /// argon2-encoded solution hash (not the raw solution)
+    pub solution: PuzzleSolutionHash,
     /// how much it's worth
     pub value: PuzzleValue,
 }
@@ -14,6 +15,7 @@ pub type PuzzleId = String;
 /// how much points you get for solving a puzzle
 pub type PuzzleValue = u32;
 pub type PuzzleSolution = String;
+pub type PuzzleSolutionHash = String;
 /// all the known puzzles with their values
 pub type PuzzlesExisting = HashMap<PuzzleId, PuzzleValue>;
 /// all the puzzles with their values and solutions
