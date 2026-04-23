@@ -1,8 +1,8 @@
 use super::{CookieMap, models::*};
 use crate::backend::i18n::Localizer;
 use crate::s_t;
-use chacha20poly1305::aead::{OsRng, rand_core::RngCore};
 use dioxus::prelude::*;
+use rand_core::{OsRng, RngCore};
 use std::sync::{LazyLock, OnceLock};
 use std::{collections::HashMap, env};
 use tokio::sync::RwLock;
@@ -19,13 +19,12 @@ pub(super) static TEAMS: LazyLock<RwLock<TeamsState>> =
     LazyLock::new(|| RwLock::new(TeamsState::new()));
 
 // SECURITY: it's fine like this, right?
-pub(super) static SALT: LazyLock<[u8; 32]> = LazyLock::new(|| {
-    let mut salt = [0u8; 32];
-    OsRng.fill_bytes(&mut salt);
-    salt
-});
+pub(super) static SALT: LazyLock<[u8; 32]> = LazyLock::new(gen_salt);
+
 pub(super) static ARGON2CONF: LazyLock<argon2::Config> = LazyLock::new(argon2::Config::default);
 pub(super) static HASHED_PWD: OnceLock<Vec<u8>> = OnceLock::new();
+/// initial, generated password that's required to set actual admin-password [`HASHED_PWD`]
+pub static INIT_PWD: LazyLock<String> = LazyLock::new(|| Uuid::new_v4().to_string());
 pub(super) static EVENT_TITLE: LazyLock<Result<String, env::VarError>> =
     LazyLock::new(|| env::var("APOLLO_EVENT_TITLE"));
 
@@ -34,6 +33,18 @@ pub(super) fn check_admin_pwd(i18n: &Localizer) -> Result<&'static Vec<u8>, Http
     HASHED_PWD
         .get()
         .or_forbidden(s_t!(i18n, "admin-password-not-set"))
+}
+
+fn gen_salt() -> [u8; 32] {
+    let mut salt = [0u8; 32];
+    OsRng.fill_bytes(&mut salt);
+    salt
+}
+
+pub(super) fn hash_puzzle_solution(raw_solution: &str) -> Result<PuzzleSolutionHash, HttpError> {
+    argon2::hash_encoded(raw_solution.as_bytes(), &gen_salt(), &ARGON2CONF)
+        .inspect_err(|e| error!("nem sikerült hasítani egy feladatmegoldást: {e}"))
+        .or_internal_server_error("nem sikerült hasítani egy feladatmegoldást")
 }
 
 /// get a clone of state: `TEAMS` and `PUZZLES`

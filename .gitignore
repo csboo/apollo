@@ -11,3 +11,5 @@
 
 **/Cargo.lock
 assets/tailwind.css
+
+.*-apollo-sid.cookie

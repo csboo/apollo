@@ -168,7 +168,7 @@ pub async fn set_admin_password(mut password: String) -> Result<String, HttpErro
 /// NOTE: if any of the solutions is incorrect, none will be saved
 #[post("/api/set_solution", headers: HeaderMap)]
 pub async fn set_solution(
-    puzzle_solutions: PuzzleSolutions,
+    mut puzzle_solutions: PuzzleSolutions,
     mut password: String,
 ) -> Result<String, HttpError> {
     let i18n = Localizer::from_headers(&headers);
@@ -196,6 +196,12 @@ pub async fn set_solution(
         .or_forbidden(s_t!(i18n, "puzzles-already-set"))?;
     drop(puzzles_lock);
 
+    for puzzle in puzzle_solutions.values_mut() {
+        let solution_hash = hash_puzzle_solution(&puzzle.solution)?;
+        puzzle.solution.zeroize();
+        puzzle.solution = solution_hash;
+    }
+
     PUZZLES.write().await.extend(puzzle_solutions);
 
     #[cfg(feature = "server_state_save")]
@@ -210,7 +216,7 @@ pub async fn set_solution(
 #[post("/api/submit", headers: HeaderMap, cookies: CookieMap)]
 pub async fn submit_solution(
     puzzle_id: PuzzleId,
-    solution: PuzzleSolution,
+    mut solution: PuzzleSolution,
 ) -> Result<String, HttpError> {
     let i18n = Localizer::from_headers(&headers);
     check_admin_pwd(&i18n)?;
@@ -222,14 +228,19 @@ pub async fn submit_solution(
         .or_not_found(s_t!(i18n, "uuid-no-team"))?
         .clone(); // PERF: rather clone than lock
 
-    PUZZLES
-        .read()
-        .await
-        .get(&puzzle_id)
-        .or_not_found(s_t!(i18n, "no-puzzle"))?
-        .solution
-        .eq(&solution)
-        .or_forbidden(s_t!(i18n, "incorrect-puzzle-solution"))?;
+    let is_solution_valid = {
+        let puzzle = PUZZLES
+            .read()
+            .await
+            .get(&puzzle_id)
+            .or_not_found(s_t!(i18n, "no-puzzle"))?
+            .clone(); // PERF: verification is relatively slow, clone instead of locking
+        argon2::verify_encoded(&puzzle.solution, solution.as_bytes())
+            .inspect_err(|e| error!("{}", s_tid!(i18n, "password-verify-err", error: e.to_string())))
+            .or_internal_server_error(s_tid!(i18n, "password-verify-err", error: "unknown"))?
+    };
+    solution.zeroize();
+    is_solution_valid.or_forbidden(s_t!(i18n, "incorrect-puzzle-solution"))?;
 
     let mut teams_lock = TEAMS.write().await;
 
