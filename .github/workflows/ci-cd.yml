@@ -32,7 +32,7 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-      - uses: davidlattimore/wild-action@latest
+      # - uses: davidlattimore/wild-action@latest # NOTE: too new glibc for ubuntu-22.04, not worth it
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-hack,dioxus-cli
