@@ -18,3 +18,9 @@ The role of this file is to describe common mistakes and confusion points that a
 **NOTE**: only read this if the code change will effect core parts with `dioxus` 
 
 you can find in-depth `dioxus` docs under <./.docs/dioxus.md>
+
+---
+
+## surprises encountered
+
+- `make check` also runs `cargo check -F web --target wasm32-unknown-unknown`; in fresh environments the `wasm32-unknown-unknown` target may be missing, so run `rustup target add wasm32-unknown-unknown` first if needed.
