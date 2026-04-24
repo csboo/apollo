@@ -32,7 +32,6 @@ And it's ready to take contestants, the hackathon can finally start!
 ## Security
 
 - We use [`Argon2`] for password-hashing.
-- Puzzle solutions are also stored as [`Argon2`] hashes (not raw plaintext).
 - State saving is encrypted with [`chacha20poly1305`] (based on [this great guide])
 
 > [!note]
@@ -46,7 +45,7 @@ And it's ready to take contestants, the hackathon can finally start!
 
 ## About
 
-Development started in 2025 by [@csboo] and [@jarjk], two elder students of the [Lovassy László Gimnázium] to have a nice little manager for the famous in-house, annual hackathon: **Kódfejtő**.
+Development started in 2025 by [@csboo] and [@jarjk], two elder students of the [Lovassy László Gimnázium] to have a nice little manager for the famous in-house, annual hackathon: <b>Kódfejtő</b>.
 
 ## Caveats (i.e. `apollo` is a WIP)
 
@@ -57,10 +56,10 @@ Development started in 2025 by [@csboo] and [@jarjk], two elder students of the 
 
 `Apollo` is written using [`dioxus`] (a React-like framework for/in [Rust]), styled with [`tailwindcss`].
 To be able to contribute, [Rust] knowledge is most certainly necessary, go ahead and read the [amazing rustbook], afterward familirialise yourself with the [`dioxus` guide].
-Also make sure to [open an issue] or reach out to us (somehow), before opening a PR ([here's a guide] for complete rookies) to make sure it aligns with our *unwritten* goals.
+Also make sure to [open an issue] or reach out to us (somehow), before opening a PR ([here's a guide] for complete rookies) to make sure it aligns with our <i>unwritten</i> goals.
 Definitely try to read the code and see whether you can understand it, we strive to write readable, easy-to-understand code.
 
-[`apollo-cli.py`] is a manual CLI (mocker) client for testing the backend/server. See `./apollo-cli.py help`.
+[`requests.fish`] is a manual CLI (mocker) client for testing the backend/server. See `requests.fish help`.
 
 [`.env.example`]: ./.env.example
 [`dioxus`]: https://dioxuslabs.com/
@@ -80,4 +79,4 @@ Definitely try to read the code and see whether you can understand it, we strive
 [here's a guide]: https://docs.github.com/en/get-started/start-your-journey/about-github-and-git
 [`dioxus` guide]: https://dioxuslabs.com/learn/0.7/
 [`tailwindcss`]: https://tailwindcss.com/
-[`apollo-cli.py`]: ./apollo-cli.py
+[`requests.fish`]: ./requests.fish

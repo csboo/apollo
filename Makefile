@@ -37,6 +37,9 @@ check: prepare-assets
 	cargo check -F server_state_save
 	cargo check -F web --target wasm32-unknown-unknown
 
+build:
+	dx bundle ${dx-args}
+
 check-all: prepare-assets
 	cargo hack check ${CARGO_HACK_FEAT_ARGS} --no-dev-deps ${target-arg} --verbose
 

@@ -1,0 +1,47 @@
+-sid-cookie = munkamenet-azonosító süti
+
+app-title = Apollo
+app-heading = Apollo
+app-client-is = a kliensünk egy
+app-wip-link = fejlesztés alatt álló változat
+app-meanwhile = közben nézd meg a
+app-github-link = github oldalunkat
+lang-english = Angol
+lang-hungarian = Magyar
+
+admin-password-not-set = még nincs beállítva a mesterjelszó
+sid-missing = hiányzik a {-sid-cookie}
+sid-invalid = érvénytelen {-sid-cookie}
+state-path-env-missing = nincs beállítva az állapot mentési helye (APOLLO_STATE_PATH): {$error}, alapértelmezettet használunk ({$default})
+state-save-failed = nem sikerült elmenteni az állapotot: {$error}
+state-file-missing = nem létezik a megadott állapot-fájl ({$path})
+state-load-success = sikeresen betöltöttük az elmentett állapotot a fájlból ({$path}) a memóriába
+encryption-err = nem sikerült a titkosítás: {$error}
+salt-read-err = nem sikerült kiolvasni a sót
+nonce-read-err = nem sikerült kiolvasni az alkalmi kifejezést
+decryption-err = nem sikerült visszafejteni a fájlt ({$path}), győződj meg róla, hogy ugyanazzal a jelszóval próbálkozol, amivel titkosítva lett: {$error}
+state-serialisation-err = nem sikerült cbor-rá alakítani az állapotot: {$error}
+state-encryption-err = nem sikerült titkosítani az állapotot: {$error}
+state-write-err = nem sikerült az állapotot fájlba ({$path}) írni: {$error}
+
+uuid-no-team = nincs ezzel az azonosítóval csapat
+already-in = már be vagy lépve
+taken-session = foglalt munkamenet
+sid-gen-err = valahogy érvénytelen {-sid-cookie}t generáltunk...
+no-progress-no-wipe = nincs előrehaladás, így nem töröljük azt
+wiping-progress-of = a(z) {$name} csapat előrehaladása törlésre kerül
+invalid-sid-no-logout = nincs ilyen munkamenet, nem léptetünk ki
+admin-password-already-set = már be van állítva a mesterjelszó
+hash-err = nem sikerült hasítani a jelszót: {$error}
+state-load-err = nem sikerült betölteni az állapotot: {$error}
+admin-password-set-success = sikeresen beállítottuk a mesterjelszót, kezdődhet a játék
+password-verify-err = nem sikerült azonosítani a jelszót: {$error}
+incorrect-password = érvénytelen jelszó
+puzzles-already-set = legalább egy feladat már be van állítva
+set-solution-success = sikeresen beállítottuk az összes feladat megoldását és értékét
+no-puzzle = nincs ezzel az azonosítóval feladat
+puzzle-hash-err = nem sikerült hasítani a feladatmegoldást: {$error}
+incorrect-puzzle-solution = érvénytelen megoldás ehhez a feladathoz
+team-progress-missing = nincs ehhez a csapatnévhez előrehaladás rendelve
+puzzle-already-solved = ezt a feladatot már megoldottad
+puzzle-submit-success = hurrá, sikeresen elmentettük a megoldásod!

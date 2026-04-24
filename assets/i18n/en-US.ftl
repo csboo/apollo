@@ -1,0 +1,47 @@
+-sid-cookie = session-id cookie
+
+app-title = Apollo
+app-heading = Apollo
+app-client-is = our client is
+app-wip-link = work-in-progress
+app-meanwhile = meanwhile, make sure to check out our
+app-github-link = github page
+lang-english = English
+lang-hungarian = Hungarian
+
+admin-password-not-set = admin password is not set yet
+sid-missing = missing {-sid-cookie}
+sid-invalid = invalid {-sid-cookie}
+state-path-env-missing = state save path (APOLLO_STATE_PATH) is not set: {$error}, using default ({$default})
+state-save-failed = couldn't save state: {$error}
+state-file-missing = configured state file does not exist ({$path})
+state-load-success = successfully loaded saved state from file ({$path}) to memory
+encryption-err = encryption error: {$error}
+salt-read-err = couldn't read salt
+nonce-read-err = couldn't read nonce
+decryption-err = error decrypting file ({$path}), make sure you use the same password used for encryption: {$error}
+state-serialisation-err = couldn't serialize state to cbor: {$error}
+state-encryption-err = couldn't encrypt state: {$error}
+state-write-err = couldn't write state to file ({$path}): {$error}
+
+uuid-no-team = no team found with this id
+already-in = already logged in
+taken-session = taken session
+sid-gen-err = somehow generated invalid {-sid-cookie}...
+no-progress-no-wipe = refusing to wipe progress, as none was found
+wiping-progress-of = wiping progress of team {$name}
+invalid-sid-no-logout = no such session, won't log out
+admin-password-already-set = admin password is already set
+hash-err = couldn't hash password: {$error}
+state-load-err = couldn't load saved state: {$error}
+admin-password-set-success = successfully set admin password, game can start
+password-verify-err = couldn't verify password: {$error}
+incorrect-password = invalid password
+puzzles-already-set = at least one of the puzzles is already set
+set-solution-success = successfully set all puzzle solutions and their values
+no-puzzle = no puzzle found with this id
+incorrect-puzzle-solution = incorrect solution for this puzzle
+puzzle-hash-err = couldn't hash puzzle solution: {$error}
+team-progress-missing = no progress is associated with this team name
+puzzle-already-solved = puzzle already solved
+puzzle-submit-success = all right, successfully saved your solution!
