@@ -1,0 +1,99 @@
+/* ============================================
+    APOLLO - DIOXUS COMPONENTS THEME
+    Global styles for styled Dioxus components
+============================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+
+body {
+    padding: 0;
+    margin: var(--space-6);
+    background-color: var(--bg);
+    color: var(--text-primary);
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1.6;
+}
+
+:root {
+    /* Primary colors */
+    --primary-color: var(--bg);
+    --primary-color-1: var(--bg);
+    --primary-color-2: var(--bg);
+    --primary-color-3: var(--bg-elevated);
+    --primary-color-4: var(--bg-surface);
+    --primary-color-5: var(--bg-hover);
+    --primary-color-6: var(--border-default);
+    --primary-color-7: var(--border-strong);
+
+    /* Secondary colors */
+    --secondary-color: var(--text-primary);
+    --secondary-color-1: var(--text-primary);
+    --secondary-color-2: var(--text-primary);
+    --secondary-color-3: var(--text-secondary);
+    --secondary-color-4: var(--text-primary);
+    --secondary-color-5: var(--text-muted);
+    --secondary-color-6: var(--text-muted);
+
+    /* Highlight colors */
+    --focused-border-color: var(--accent-primary);
+    --primary-success-color: var(--accent-success-subtle);
+    --secondary-success-color: var(--accent-success);
+    --primary-warning-color: var(--accent-warning-subtle);
+    --secondary-warning-color: var(--accent-warning);
+    --primary-error-color: var(--accent-danger-subtle);
+    --secondary-error-color: var(--accent-danger);
+    --contrast-error-color: var(--text-primary);
+    --primary-info-color: var(--bg-hover);
+    --secondary-info-color: var(--text-secondary);
+}
+
+/* Scrollbar styling */
+@supports (scrollbar-width: auto) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-strong) transparent;
+    }
+    
+    *:not(:hover) {
+        scrollbar-color: transparent transparent;
+    }
+    
+    *:hover {
+        scrollbar-color: var(--border-strong) transparent;
+    }
+}
+
+@supports selector(::-webkit-scrollbar) {
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: var(--border-strong);
+        border-radius: var(--radius-full);
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-muted);
+    }
+}
+
+/* Focus styles */
+:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* Selection styling */
+::selection {
+    background: var(--accent-primary-subtle);
+    color: var(--text-primary);
+}
