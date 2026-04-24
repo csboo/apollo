@@ -215,6 +215,14 @@ pub async fn submit_solution(
             .get(&puzzle_id)
             .or_not_found("nincs ezzel az azonosítóval feladat")?
             .clone(); // PERF: verification is relatively slow, clone instead of locking
+        (!TEAMS
+            .read()
+            .await
+            .get(&username)
+            .or_internal_server_error("nincs ehhez a csapatnévhez előrehaladás rendelve")?
+            .contains(&puzzle_id)) // not contains
+        .or_forbidden("ezt a feladatot már megoldottad")?;
+
         argon2::verify_encoded(&puzzle.solution, solution.as_bytes())
             .inspect_err(|e| error!("nem sikerült ellenőrizni a feladatmegoldást: {e}"))
             .or_internal_server_error("nem sikerült ellenőrizni a feladatmegoldást")?
@@ -222,16 +230,12 @@ pub async fn submit_solution(
     solution.zeroize();
     is_solution_valid.or_forbidden("érvénytelen megoldás ehhez a feladathoz")?;
 
-    let mut teams_lock = TEAMS.write().await;
-
-    let team_solved = teams_lock
+    TEAMS
+        .write()
+        .await
         .get_mut(&username)
-        .or_internal_server_error("nincs ehhez a csapatnévhez előrehaladás rendelve")?;
-
-    team_solved
-        .insert(puzzle_id)
-        .or_forbidden("ezt a feladatot már megoldottad")?;
-    drop(teams_lock);
+        .or_internal_server_error("nincs ehhez a csapatnévhez előrehaladás rendelve")?
+        .insert(puzzle_id);
 
     #[cfg(feature = "server_state_save")]
     tokio::spawn(state_save::save_state());
