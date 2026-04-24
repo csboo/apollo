@@ -40,6 +40,7 @@ incorrect-password = érvénytelen jelszó
 puzzles-already-set = legalább egy feladat már be van állítva
 set-solution-success = sikeresen beállítottuk az összes feladat megoldását és értékét
 no-puzzle = nincs ezzel az azonosítóval feladat
+puzzle-hash-err = nem sikerült hasítani a feladatmegoldást: {$error}
 incorrect-puzzle-solution = érvénytelen megoldás ehhez a feladathoz
 team-progress-missing = nincs ehhez a csapatnévhez előrehaladás rendelve
 puzzle-already-solved = ezt a feladatot már megoldottad

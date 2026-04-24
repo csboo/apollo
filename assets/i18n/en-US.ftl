@@ -41,6 +41,7 @@ puzzles-already-set = at least one of the puzzles is already set
 set-solution-success = successfully set all puzzle solutions and their values
 no-puzzle = no puzzle found with this id
 incorrect-puzzle-solution = incorrect solution for this puzzle
+puzzle-hash-err = couldn't hash puzzle solution: {$error}
 team-progress-missing = no progress is associated with this team name
 puzzle-already-solved = puzzle already solved
 puzzle-submit-success = all right, successfully saved your solution!

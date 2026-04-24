@@ -1,6 +1,6 @@
 use super::{CookieMap, models::*};
 use crate::backend::i18n::Localizer;
-use crate::s_t;
+use crate::{s_t, s_tid};
 use dioxus::prelude::*;
 use rand_core::{OsRng, RngCore};
 use std::sync::{LazyLock, OnceLock};
@@ -41,10 +41,13 @@ fn gen_salt() -> [u8; 32] {
     salt
 }
 
-pub(super) fn hash_puzzle_solution(raw_solution: &str) -> Result<PuzzleSolutionHash, HttpError> {
+pub(super) fn hash_puzzle_solution(
+    raw_solution: &str,
+    i18n: &Localizer,
+) -> Result<PuzzleSolutionHash, HttpError> {
     argon2::hash_encoded(raw_solution.as_bytes(), &gen_salt(), &ARGON2CONF)
-        .inspect_err(|e| error!("nem sikerült hasítani egy feladatmegoldást: {e}"))
-        .or_internal_server_error("nem sikerült hasítani egy feladatmegoldást")
+        .inspect_err(|e| error!("{}", s_tid!(i18n, "puzzle-hash-err", error: e.to_string())))
+        .or_internal_server_error(s_tid!(i18n, "puzzle-hash-err", error: "unknown"))
 }
 
 /// get a clone of state: `TEAMS` and `PUZZLES`

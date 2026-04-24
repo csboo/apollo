@@ -192,12 +192,12 @@ pub async fn set_solution(
     let puzzles_lock = PUZZLES.read().await;
     puzzle_solutions
         .keys()
-        .any(|new_k| !puzzles_lock.contains_key(new_k))
+        .any(|new_k| puzzles_lock.contains_key(new_k))
         .or_forbidden(s_t!(i18n, "puzzles-already-set"))?;
     drop(puzzles_lock);
 
     for puzzle in puzzle_solutions.values_mut() {
-        let solution_hash = hash_puzzle_solution(&puzzle.solution)?;
+        let solution_hash = hash_puzzle_solution(&puzzle.solution, &i18n)?;
         puzzle.solution.zeroize();
         puzzle.solution = solution_hash;
     }
