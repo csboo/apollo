@@ -92,7 +92,7 @@ jobs:
         run: tree release-artifacts # beautiful!
 
       - name: Create a GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           # draft: true
           generate_release_notes: true
@@ -131,7 +131,7 @@ jobs:
           git tag --force tip && git push --force origin tag tip
 
       - name: Update the draft tip release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Tip Build
           tag_name: tip
