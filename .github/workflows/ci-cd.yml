@@ -29,7 +29,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: swatinem/rust-cache@v2
         with:
           cache-on-failure: true
@@ -110,7 +110,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Download prebuilt artifacts
         uses: actions/download-artifact@v8
         with:
