@@ -1,7 +1,6 @@
 use super::models::*;
 use dioxus::fullstack::{Cookie, TypedHeader};
 use dioxus::prelude::*;
-use rand_core::{OsRng, RngCore};
 use std::sync::{LazyLock, OnceLock};
 use std::{collections::HashMap, env};
 use tokio::sync::RwLock;
@@ -36,7 +35,7 @@ pub(super) fn check_admin_pwd() -> Result<&'static Vec<u8>, HttpError> {
 
 fn gen_salt() -> [u8; 32] {
     let mut salt = [0u8; 32];
-    OsRng.fill_bytes(&mut salt);
+    getrandom::fill(&mut salt).expect("RNG failure");
     salt
 }
 
@@ -70,8 +69,8 @@ pub(super) async fn extract_sid_cookie(cookies: TypedHeader<Cookie>) -> Result<U
 pub(super) mod state_save {
     use super::{PUZZLES, SALT, TEAMS, Teams, USER_IDS, check_admin_pwd};
     use crate::backend::models::*;
-    use chacha20poly1305::aead::{Aead, Nonce, OsRng};
-    use chacha20poly1305::{AeadCore, KeyInit, XChaCha20Poly1305};
+    use chacha20poly1305::aead::{Aead, Generate, Nonce};
+    use chacha20poly1305::{KeyInit, XChaCha20Poly1305};
     use dioxus::prelude::*;
     use std::{env, path::Path, sync::LazyLock};
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -93,8 +92,8 @@ pub(super) mod state_save {
 
     async fn encrypt(raw_content: &[u8]) -> Res<Vec<u8>> {
         let hashed_key = check_admin_pwd()?;
-        let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
-        let cipher = XChaCha20Poly1305::new(hashed_key.as_slice().into());
+        let nonce = Nonce::<XChaCha20Poly1305>::generate();
+        let cipher = XChaCha20Poly1305::new_from_slice(hashed_key.as_slice())?;
         let encrypted_content = cipher
             .encrypt(&nonce, raw_content)
             .map_err(|e| format!("nem sikerült a titkosítás: {e}"))?;
@@ -127,7 +126,7 @@ pub(super) mod state_save {
 
         let mut derived_key = argon2::hash_raw(raw_pwd, &salt, &super::ARGON2CONF)?;
 
-        let cipher = XChaCha20Poly1305::new(derived_key.as_slice().into());
+        let cipher = XChaCha20Poly1305::new_from_slice(derived_key.as_slice())?;
         let mut buf = vec![];
         let _n = encrypted_file.read_to_end(&mut buf).await?;
 
