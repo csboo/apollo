@@ -34,7 +34,7 @@ jobs:
         with:
           cache-on-failure: true
       - uses: davidlattimore/wild-action@latest
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@v2.85.4
         with:
           tool: cargo-hack,dioxus-cli
 
