@@ -38,12 +38,7 @@ pub(super) fn hash_puzzle_solution(raw_solution: &str) -> Result<PuzzleSolutionH
         .hash_password(raw_solution.as_bytes())
         .map(|h| h.to_string())
         .inspect_err(|e| error!("nem sikerült hasítani egy feladatmegoldást: {e}"))
-        .map_err(|_| {
-            HttpError::new(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "nem sikerült hasítani egy feladatmegoldást",
-            )
-        })
+        .or_internal_server_error("nem sikerült hasítani egy feladatmegoldást")
 }
 
 /// get a clone of state: `TEAMS` and `PUZZLES`
