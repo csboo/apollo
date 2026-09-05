@@ -26,11 +26,11 @@ prepare-assets:
 	test -e assets/tailwind.css || touch assets/tailwind.css 
 
 serve:
-	# NOTE: consider disabling `--hot-patch` if it doesn't work
-	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve --hot-patch ${dx-args}
+	# NOTE: although quite unstable, you can experiment with adding `--hot-patch` if desired
+	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve ${dx-args}
 
 serve-no-state:
-	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve --hot-patch --web
+	APOLLO_EVENT_TITLE=${EVENT_TITLE} dx serve --web
 
 check: prepare-assets
 	cargo check --all-targets
