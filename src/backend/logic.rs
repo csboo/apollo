@@ -19,7 +19,6 @@ pub(super) static TEAMS: LazyLock<RwLock<TeamsState>> =
 // SECURITY: it's fine like this, right?
 pub(super) static SALT: LazyLock<[u8; 32]> = LazyLock::new(gen_salt);
 
-pub(super) static ARGON2CONF: LazyLock<argon2::Config> = LazyLock::new(argon2::Config::default);
 pub(super) static HASHED_PWD: OnceLock<Vec<u8>> = OnceLock::new();
 /// initial, generated password that's required to set actual admin-password [`HASHED_PWD`]
 pub static INIT_PWD: LazyLock<String> = LazyLock::new(|| Uuid::new_v4().to_string());
@@ -40,9 +39,15 @@ fn gen_salt() -> [u8; 32] {
 }
 
 pub(super) fn hash_puzzle_solution(raw_solution: &str) -> Result<PuzzleSolutionHash, HttpError> {
-    argon2::hash_encoded(raw_solution.as_bytes(), &gen_salt(), &ARGON2CONF)
+    use argon2::{PasswordHasher, password_hash::SaltString};
+    let mut raw_salt = [0u8; 32];
+    getrandom::fill(&mut raw_salt).expect("RNG failure");
+    let salt = SaltString::encode_b64(&raw_salt).expect("valid b64 salt");
+    argon2::Argon2::default()
+        .hash_password(raw_solution.as_bytes(), &salt)
+        .map(|h| h.to_string())
         .inspect_err(|e| error!("nem sikerült hasítani egy feladatmegoldást: {e}"))
-        .or_internal_server_error("nem sikerült hasítani egy feladatmegoldást")
+        .map_err(|_| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, "nem sikerült hasítani egy feladatmegoldást"))
 }
 
 /// get a clone of state: `TEAMS` and `PUZZLES`
@@ -124,7 +129,10 @@ pub(super) mod state_save {
             return Err("nem sikerült kiolvasni az alkalmi kifejezést".into());
         }
 
-        let mut derived_key = argon2::hash_raw(raw_pwd, &salt, &super::ARGON2CONF)?;
+        let mut derived_key = vec![0u8; 32];
+        argon2::Argon2::default()
+            .hash_password_into(raw_pwd, &salt, &mut derived_key)
+            .map_err(|e| format!("argon2 key derivation failed: {e}"))?;
 
         let cipher = XChaCha20Poly1305::new_from_slice(derived_key.as_slice())?;
         let mut buf = vec![];

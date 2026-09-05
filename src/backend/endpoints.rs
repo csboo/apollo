@@ -130,12 +130,11 @@ pub async fn set_passwd(init_password: String, mut password: String) -> Result<S
         .is_err()
         .or_forbidden("már be van állítva a mesterjelszó")?;
 
-    let hashed_key = match argon2::hash_raw(password.as_bytes(), &*SALT, &ARGON2CONF) {
-        Ok(hk) => hk,
-        Err(e) => {
-            HttpError::internal_server_error(format!("nem sikerült hasítani a jelszót: {e}"))?
-        }
-    };
+    let mut hashed_key = vec![0u8; 32];
+    argon2::Argon2::default()
+        .hash_password_into(password.as_bytes(), &*SALT, &mut hashed_key)
+        .inspect_err(|e| error!("nem sikerült hasítani a jelszót: {e}"))
+        .map_err(|_| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, "nem sikerült hasítani a jelszót"))?;
 
     #[cfg(feature = "server_state_save")]
     if let Err(err) = state_save::load_state(password.as_bytes()).await {
@@ -162,10 +161,12 @@ pub async fn set_solution(
 ) -> Result<String, HttpError> {
     // submitting as admin
     let hashed_key = check_admin_pwd()?;
-    let pwd_matches = argon2::verify_raw(password.as_bytes(), &*SALT, hashed_key, &ARGON2CONF)
+    let mut verify_hash = vec![0u8; 32];
+    argon2::Argon2::default().hash_password_into(password.as_bytes(), &*SALT, &mut verify_hash)
         .inspect_err(|e| error!("nem sikerült azonosítani a jelszót: {e}"))
-        .or_internal_server_error("nem sikerült azonosítani a jelszót")?;
+        .map_err(|_| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, "nem sikerült azonosítani a jelszót"))?;
     password.zeroize();
+    let pwd_matches = verify_hash == *hashed_key;
     pwd_matches.or_unauthorized("érvénytelen jelszó")?;
 
     let puzzles_lock = PUZZLES.read().await;
@@ -208,6 +209,8 @@ pub async fn submit_solution(
         .or_not_found("nincs ezzel az azonosítóval csapat")?
         .clone(); // PERF: rather clone than lock
 
+    use argon2::PasswordVerifier;
+
     let is_solution_valid = {
         let puzzle = PUZZLES
             .read()
@@ -223,9 +226,19 @@ pub async fn submit_solution(
             .contains(&puzzle_id)) // not contains
         .or_forbidden("ezt a feladatot már megoldottad")?;
 
-        argon2::verify_encoded(&puzzle.solution, solution.as_bytes())
-            .inspect_err(|e| error!("nem sikerült ellenőrizni a feladatmegoldást: {e}"))
-            .or_internal_server_error("nem sikerült ellenőrizni a feladatmegoldást")?
+        let parsed_hash = argon2::PasswordHash::new(&puzzle.solution)
+            .inspect_err(|e| error!("nem sikerült elemezni a tárolt feladatmegoldást: {e}"))
+            .map_err(|_| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, "nem sikerült ellenőrizni a feladatmegoldást"))?;
+        match argon2::Argon2::default()
+            .verify_password(solution.as_bytes(), &parsed_hash)
+        {
+            Ok(()) => true,
+            Err(e) if matches!(e, argon2::password_hash::Error::Password) => false,
+            Err(e) => {
+                error!("nem sikerült ellenőrizni a feladatmegoldást: {e}");
+                HttpError::internal_server_error("nem sikerült ellenőrizni a feladatmegoldást")?
+            }
+        }
     };
     solution.zeroize();
     is_solution_valid.or_forbidden("érvénytelen megoldás ehhez a feladathoz")?;
