@@ -17,7 +17,7 @@ pub(super) static TEAMS: LazyLock<RwLock<TeamsState>> =
     LazyLock::new(|| RwLock::new(TeamsState::new()));
 
 // SECURITY: it's fine like this, right?
-pub(super) static SALT: LazyLock<[u8; 32]> = LazyLock::new(gen_salt);
+pub(super) static SALT: LazyLock<[u8; 16]> = LazyLock::new(argon2::password_hash::generate_salt);
 
 pub(super) static HASHED_PWD: OnceLock<Vec<u8>> = OnceLock::new();
 /// initial, generated password that's required to set actual admin-password [`HASHED_PWD`]
@@ -32,22 +32,18 @@ pub(super) fn check_admin_pwd() -> Result<&'static Vec<u8>, HttpError> {
         .or_forbidden("még nincs beállítva mesterjelszó")
 }
 
-fn gen_salt() -> [u8; 32] {
-    let mut salt = [0u8; 32];
-    getrandom::fill(&mut salt).expect("RNG failure");
-    salt
-}
-
 pub(super) fn hash_puzzle_solution(raw_solution: &str) -> Result<PuzzleSolutionHash, HttpError> {
-    use argon2::{PasswordHasher, password_hash::SaltString};
-    let mut raw_salt = [0u8; 32];
-    getrandom::fill(&mut raw_salt).expect("RNG failure");
-    let salt = SaltString::encode_b64(&raw_salt).expect("valid b64 salt");
+    use argon2::PasswordHasher;
     argon2::Argon2::default()
-        .hash_password(raw_solution.as_bytes(), &salt)
+        .hash_password(raw_solution.as_bytes())
         .map(|h| h.to_string())
         .inspect_err(|e| error!("nem sikerült hasítani egy feladatmegoldást: {e}"))
-        .map_err(|_| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, "nem sikerült hasítani egy feladatmegoldást"))
+        .map_err(|_| {
+            HttpError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "nem sikerült hasítani egy feladatmegoldást",
+            )
+        })
 }
 
 /// get a clone of state: `TEAMS` and `PUZZLES`

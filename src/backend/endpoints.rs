@@ -131,10 +131,15 @@ pub async fn set_passwd(init_password: String, mut password: String) -> Result<S
         .or_forbidden("már be van állítva a mesterjelszó")?;
 
     let mut hashed_key = vec![0u8; 32];
-    argon2::Argon2::default()
+    argon2::Argon2::default() // NOTE: using `hash_password_into` as password will be used as crypto key for state saving
         .hash_password_into(password.as_bytes(), &*SALT, &mut hashed_key)
         .inspect_err(|e| error!("nem sikerült hasítani a jelszót: {e}"))
-        .map_err(|_| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, "nem sikerült hasítani a jelszót"))?;
+        .map_err(|_| {
+            HttpError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "nem sikerült hasítani a jelszót",
+            )
+        })?;
 
     #[cfg(feature = "server_state_save")]
     if let Err(err) = state_save::load_state(password.as_bytes()).await {
@@ -162,9 +167,15 @@ pub async fn set_solution(
     // submitting as admin
     let hashed_key = check_admin_pwd()?;
     let mut verify_hash = vec![0u8; 32];
-    argon2::Argon2::default().hash_password_into(password.as_bytes(), &*SALT, &mut verify_hash)
+    argon2::Argon2::default()
+        .hash_password_into(password.as_bytes(), &*SALT, &mut verify_hash)
         .inspect_err(|e| error!("nem sikerült azonosítani a jelszót: {e}"))
-        .map_err(|_| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, "nem sikerült azonosítani a jelszót"))?;
+        .map_err(|_| {
+            HttpError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "nem sikerült azonosítani a jelszót",
+            )
+        })?;
     password.zeroize();
     let pwd_matches = verify_hash == *hashed_key;
     pwd_matches.or_unauthorized("érvénytelen jelszó")?;
@@ -228,12 +239,15 @@ pub async fn submit_solution(
 
         let parsed_hash = argon2::PasswordHash::new(&puzzle.solution)
             .inspect_err(|e| error!("nem sikerült elemezni a tárolt feladatmegoldást: {e}"))
-            .map_err(|_| HttpError::new(StatusCode::INTERNAL_SERVER_ERROR, "nem sikerült ellenőrizni a feladatmegoldást"))?;
-        match argon2::Argon2::default()
-            .verify_password(solution.as_bytes(), &parsed_hash)
-        {
+            .map_err(|_| {
+                HttpError::new(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "nem sikerült ellenőrizni a feladatmegoldást",
+                )
+            })?;
+        match argon2::Argon2::default().verify_password(solution.as_bytes(), &parsed_hash) {
             Ok(()) => true,
-            Err(e) if matches!(e, argon2::password_hash::Error::Password) => false,
+            Err(argon2::password_hash::Error::PasswordInvalid) => false,
             Err(e) => {
                 error!("nem sikerült ellenőrizni a feladatmegoldást: {e}");
                 HttpError::internal_server_error("nem sikerült ellenőrizni a feladatmegoldást")?
