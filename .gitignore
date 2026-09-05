@@ -9,7 +9,6 @@
 # Server state backups
 **.cbor*
 
-**/Cargo.lock
 assets/tailwind.css
 
 .*-apollo-sid.cookie
