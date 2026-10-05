@@ -1,0 +1,175 @@
+/* ============================================
+   ALERT DIALOG COMPONENT STYLES
+============================================ */
+
+/* Backdrop */
+.alert-dialog-backdrop {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.alert-dialog-backdrop[data-state="closed"] {
+    animation: backdrop-out 150ms ease-in forwards;
+}
+
+@keyframes backdrop-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.alert-dialog-backdrop[data-state="open"] {
+    animation: backdrop-in 150ms ease-out forwards;
+}
+
+@keyframes backdrop-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Dialog container */
+.alert-dialog {
+    position: fixed;
+    z-index: 1001;
+    top: 50%;
+    left: 50%;
+    display: flex;
+    width: 100%;
+    max-width: calc(100% - var(--space-8));
+    box-sizing: border-box;
+    flex-direction: column;
+    padding: var(--space-8) var(--space-6) var(--space-6);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl);
+    background: var(--bg-elevated);
+    box-shadow: var(--shadow-xl);
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    gap: var(--space-4);
+    text-align: center;
+    transform: translate(-50%, -50%);
+}
+
+.alert-dialog[data-state="open"] {
+    animation: dialog-in 200ms ease-out forwards;
+}
+
+.alert-dialog[data-state="closed"] {
+    animation: dialog-out 150ms ease-in forwards;
+}
+
+@keyframes dialog-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes dialog-out {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+    }
+}
+
+.alert-dialog-title {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: var(--text-xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.alert-dialog-description {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+    line-height: 1.6;
+}
+
+.alert-dialog-actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+}
+
+@media (min-width: 40rem) {
+    .alert-dialog-actions {
+        flex-direction: row;
+        justify-content: flex-end;
+    }
+
+    .alert-dialog {
+        max-width: 28rem;
+        text-align: left;
+    }
+}
+
+/* Cancel button */
+.alert-dialog-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2) var(--space-5);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.alert-dialog-cancel:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+}
+
+.alert-dialog-cancel:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-primary);
+}
+
+/* Action/confirm button (destructive) */
+.alert-dialog-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2) var(--space-5);
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--accent-danger);
+    color: white;
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: all var(--transition-fast);
+}
+
+.alert-dialog-action:hover {
+    background: var(--accent-danger-hover);
+}
+
+.alert-dialog-action:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-danger);
+}

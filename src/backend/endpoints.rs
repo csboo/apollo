@@ -14,6 +14,14 @@ pub async fn event_title() -> Result<String> {
     Ok(EVENT_TITLE.clone()?)
 }
 
+#[get("/api/contestant_ready")]
+pub async fn contestant_ready() -> Result<String, HttpError> {
+    check_admin_pwd()?;
+    Ok(String::from(
+        "a kiszolgáló készen áll versenyzők fogadására",
+    ))
+}
+
 /// streams current progress of the teams and existing puzzles with their values
 #[get("/api/state")]
 pub async fn state_stream() -> Result<Streaming<(TeamsState, PuzzlesExisting), CborEncoding>> {
@@ -117,6 +125,19 @@ pub async fn logout(wipe_progress: Option<bool>) -> Result<SetHeader<SetCookie>,
         .or_internal_server_error("valahogy érvénytelen munkamenet-azonosító sütit generáltunk...")
 }
 
+/// check whether necessary admin credential criteria are met
+#[post("/api/admin_auth_state")]
+pub async fn admin_auth_state(mut password: String) -> Result<String, HttpError> {
+    // submitting as admin
+    let hashed_key = check_admin_pwd()?;
+    let pwd_matches = argon2::verify_raw(password.as_bytes(), &*SALT, hashed_key, &ARGON2CONF)
+        .inspect_err(|e| error!("nem sikerült azonosítani a jelszót: {e}"))
+        .or_internal_server_error("nem sikerült azonosítani a jelszót")?;
+    password.zeroize();
+    pwd_matches.or_unauthorized("érvénytelen jelszó")?;
+    Ok(String::from("sikeres rendszergazdai bejelentkezés"))
+}
+
 /// before this, no solution can be set, no state will be loaded
 /// NOTE: might take a while, as it hashes the `password` and loads the state
 /// NOTE: use https
@@ -158,15 +179,10 @@ pub async fn set_passwd(init_password: String, mut password: String) -> Result<S
 #[post("/api/set_solution")]
 pub async fn set_solution(
     mut puzzle_solutions: PuzzleSolutions,
-    mut password: String,
+    password: String,
 ) -> Result<String, HttpError> {
     // submitting as admin
-    let hashed_key = check_admin_pwd()?;
-    let pwd_matches = argon2::verify_raw(password.as_bytes(), &*SALT, hashed_key, &ARGON2CONF)
-        .inspect_err(|e| error!("nem sikerült azonosítani a jelszót: {e}"))
-        .or_internal_server_error("nem sikerült azonosítani a jelszót")?;
-    password.zeroize();
-    pwd_matches.or_unauthorized("érvénytelen jelszó")?;
+    admin_auth_state(password).await?;
 
     let puzzles_lock = PUZZLES.read().await;
     puzzle_solutions
